@@ -1,0 +1,47 @@
+:root {
+  background-color: #242424;
+  color: #e6e6e6;
+  font-size: 14;
+  font-weight: light;
+}
+
+
+param-slider {
+  height: 30px;
+  width: 180px;
+  border-color: #e6e6e6;
+  border-width: 2px;
+  background-color: transparent;
+  transition: background-color 100ms;
+
+}
+
+param-slider:active,
+param-slider:hover {
+  background-color: transparent;
+}
+
+param-slider .fill {
+  background-color: #464646;
+}
+param-slider .fill--modulation {
+  background-color: #e6e6e6;
+}
+
+/* This is a textbox, but we want it to appear just like the label */
+param-slider .value-entry {
+  /* Vizia doesn't support the unset value */
+  background-color: transparent;
+  border-width: 0px;
+  child-space: 1s;
+}
+param-slider .value-entry .caret {
+  background-color: #0a0a0a;
+}
+param-slider .value-entry .selection {
+  background-color: #0a0a0a30;
+}
+
+.waveform{
+  border: 2px solid #e6e6e6;
+}
