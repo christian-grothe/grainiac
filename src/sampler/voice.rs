@@ -1,6 +1,6 @@
 use super::grain::Grain;
 
-const GRAIN_NUM: usize = 128;
+pub const GRAIN_NUM: usize = 40;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
 #[allow(dead_code)]
@@ -27,6 +27,7 @@ pub struct Voice {
     gain: f32,
     spray: f32,
     grain_length: f32,
+    grain_data: Vec<(f32, f32, f32)>,
 }
 
 impl Voice {
@@ -56,6 +57,7 @@ impl Voice {
             gain: 0.0,
             spray: 0.1,
             grain_length: 1.0,
+            grain_data: Vec::with_capacity(GRAIN_NUM),
         }
     }
 
@@ -99,7 +101,7 @@ impl Voice {
         self.env.state == EnvelopeState::Release
     }
 
-    pub fn render(&mut self) -> Vec<(f32, f32, f32)> {
+    pub fn render(&mut self) -> &Vec<(f32, f32, f32)> {
         match self.play_dircetion {
             PlayDirection::Forward => {
                 self.play_pos += self.inc;
@@ -137,10 +139,10 @@ impl Voice {
             }
         }
 
-        let mut grain_data: Vec<(f32, f32, f32)> = vec![];
+        self.grain_data.clear();
         for grain in self.grains.iter_mut() {
             if grain.active {
-                grain_data.push(grain.update(self.gain));
+                self.grain_data.push(grain.update(self.gain));
             }
         }
 
@@ -155,7 +157,7 @@ impl Voice {
             }
         }
 
-        grain_data
+        &self.grain_data
     }
 }
 

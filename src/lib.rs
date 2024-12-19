@@ -1,17 +1,16 @@
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
-use std::sync::Arc;
+use sampler::DrawData;
+use std::sync::{Arc, Mutex};
+use triple_buffer::triple_buffer;
 
 mod editor;
 mod sampler;
 
-// This is a shortened version of the gain example with most comments removed, check out
-// https://github.com/robbert-vdh/nih-plug/blob/master/plugins/examples/gain/src/lib.rs to get
-// started
-
 pub struct Grainiac {
     params: Arc<GrainiacParams>,
     sampler: sampler::Sampler,
+    buf_output: Arc<Mutex<triple_buffer::Output<DrawData>>>,
 }
 
 #[derive(Params)]
@@ -40,9 +39,11 @@ struct GrainiacParams {
 
 impl Default for Grainiac {
     fn default() -> Self {
+        let (buf_input, buf_output) = triple_buffer(&DrawData::new());
         Self {
             params: Arc::new(GrainiacParams::default()),
-            sampler: sampler::Sampler::new(48000.0),
+            sampler: sampler::Sampler::new(48000.0, buf_input),
+            buf_output: Arc::new(Mutex::new(buf_output)),
         }
     }
 }
@@ -133,7 +134,11 @@ impl Plugin for Grainiac {
     }
 
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
-        editor::create(self.params.clone(), self.params.editor_state.clone())
+        editor::create(
+            self.params.clone(),
+            self.params.editor_state.clone(),
+            self.buf_output.clone(),
+        )
     }
 
     fn initialize(

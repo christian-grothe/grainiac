@@ -1700,6 +1700,7 @@ dependencies = [
  "nih_plug",
  "nih_plug_vizia",
  "rand 0.8.5",
+ "triple_buffer",
 ]
 
 [[package]]
@@ -3514,6 +3515,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "triple_buffer"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e66931c8eca6381f0d34656a9341f09bd462010488c1a3bc0acd3f2d08dffce"
+dependencies = [
+ "crossbeam-utils",
 ]
 
 [[package]]
