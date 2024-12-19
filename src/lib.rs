@@ -174,10 +174,10 @@ impl Plugin for Grainiac {
         self.sampler
             .set_grain_length(0, self.params.grain_length.value());
 
-        let next_event = context.next_event();
+        let mut next_event = context.next_event();
 
-        match next_event {
-            Some(event) => match event {
+        while let Some(event) = next_event {
+            match event {
                 NoteEvent::NoteOn { note, .. } => self.sampler.note_on(note as usize),
                 NoteEvent::NoteOff { note, .. } => self.sampler.note_off(note as usize),
                 NoteEvent::MidiCC { cc, value, .. } => match cc {
@@ -193,8 +193,8 @@ impl Plugin for Grainiac {
                 _ => {
                     nih_plug::nih_log!("{:?}", event)
                 }
-            },
-            _ => {}
+            }
+            next_event = context.next_event();
         }
 
         for channels in buffer.iter_samples() {
