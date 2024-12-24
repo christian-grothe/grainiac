@@ -1,10 +1,10 @@
 use nih_plug::nih_error;
 use nih_plug::prelude::Editor;
 use nih_plug_vizia::vizia::prelude::*;
-use nih_plug_vizia::widgets::GenericUi;
+use nih_plug_vizia::widgets::*;
 use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
-use triple_buffer::Output;
 use std::sync::{Arc, Mutex};
+use triple_buffer::Output;
 
 use crate::sampler::DrawData;
 use crate::GrainiacParams;
@@ -18,15 +18,15 @@ struct Data {
 impl Model for Data {}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (300, 450))
+    ViziaState::new(|| (600, 600))
 }
 
 pub(crate) fn create(
     params: Arc<GrainiacParams>,
     editor_state: Arc<ViziaState>,
-    draw_data: Arc<Mutex<Output<DrawData>>>,
+    draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
 ) -> Option<Box<dyn Editor>> {
-    create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
+    create_vizia_editor(edior_state, ViziaTheming::Custom, move |cx, _| {
         assets::register_noto_sans_light(cx);
         assets::register_noto_sans_thin(cx);
 
@@ -40,15 +40,111 @@ pub(crate) fn create(
         .build(cx);
 
         VStack::new(cx, |cx| {
-            GenericUi::new(cx, Data::params).child_top(Pixels(10.0));
+            top_bar(cx);
+            instance_a(cx);
+            HStack::new(cx, |cx| {
+                waveform::Waveform::new(cx, draw_data.clone(), 0);
+            })
+            .left(Pixels(15.0))
+            .right(Pixels(15.0))
+            .bottom(Pixels(25.0))
+            .class("waveform");
+
+            instance_b(cx);
+            HStack::new(cx, |cx| {
+                waveform::Waveform::new(cx, draw_data.clone(), 1);
+            })
+            .left(Pixels(15.0))
+            .right(Pixels(15.0))
+            .bottom(Pixels(25.0))
+            .class("waveform");
         });
-        HStack::new(cx, |cx| {
-            waveform::Waveform::new(cx, draw_data.clone());
-        })
-        .min_top(Pixels(30.0))
-        .left(Pixels(15.0))
-        .right(Pixels(15.0))
-        .height(Pixels(100.0))
-        .class("waveform");
     })
+}
+
+fn top_bar(cx: &mut Context) {
+    HStack::new(cx, |cx| {
+        Label::new(cx, "Grainiac")
+            .font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
+            .font_weight(FontWeightKeyword::Thin)
+            .font_size(25.0);
+    })
+    .left(Pixels(15.0))
+    .top(Pixels(10.0))
+    .right(Pixels(15.0))
+    .height(Pixels(50.0))
+    .text_align(TextAlign::Right)
+    .width(Stretch(1.0));
+}
+
+fn instance_a(cx: &mut Context) {
+    VStack::new(cx, |cx| {
+        HStack::new(cx, |cx| {
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Loop Start");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].loop_start)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Loop End");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].loop_end)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Play Speed");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].play_speed)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Density");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].density)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Spray");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].spray)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Grain Length");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[0].grain_length)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+        });
+    })
+    .left(Pixels(15.0))
+    .right(Pixels(15.0));
+}
+
+fn instance_b(cx: &mut Context) {
+    VStack::new(cx, |cx| {
+        HStack::new(cx, |cx| {
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Loop Start");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].loop_start)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Loop End");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].loop_end)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Play Speed");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].play_speed)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Density");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].density)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Spray");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].spray)
+                    .bottom(Pixels(10.0))
+                    .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Grain Length");
+                ParamSlider::new(cx, Data::params, |params| &params.instances[1].grain_length)
+                    .set_style(ParamSliderStyle::FromLeft);
+            });
+        });
+    })
+    .left(Pixels(15.0))
+    .right(Pixels(15.0));
 }

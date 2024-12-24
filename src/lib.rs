@@ -1,6 +1,6 @@
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
-use sampler::DrawData;
+use sampler::{DrawData, INSTANCE_NUM};
 use std::sync::{Arc, Mutex};
 use triple_buffer::triple_buffer;
 
@@ -10,7 +10,7 @@ mod sampler;
 pub struct Grainiac {
     params: Arc<GrainiacParams>,
     sampler: sampler::Sampler,
-    buf_output: Arc<Mutex<triple_buffer::Output<DrawData>>>,
+    buf_output: Arc<Mutex<triple_buffer::Output<Vec<DrawData>>>>,
 }
 
 #[derive(Params)]
@@ -76,13 +76,13 @@ struct GrainiacParams {
     #[persist = "editor-state"]
     editor_state: Arc<ViziaState>,
 
-    #[nested(id_prefix = "instance_a", group = "instances")]
-    instance_a: InstanceParams,
+    #[nested(array, group = "instances")]
+    instances: [InstanceParams; INSTANCE_NUM],
 }
 
 impl Default for Grainiac {
     fn default() -> Self {
-        let (buf_input, buf_output) = triple_buffer(&DrawData::new());
+        let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); INSTANCE_NUM]);
         Self {
             params: Arc::new(GrainiacParams::default()),
             sampler: sampler::Sampler::new(48000.0, buf_input),
@@ -95,7 +95,7 @@ impl Default for GrainiacParams {
     fn default() -> Self {
         Self {
             editor_state: editor::default_state(),
-            instance_a: InstanceParams::new(),
+            instances: [(); INSTANCE_NUM].map(|_| InstanceParams::new()),
         }
     }
 }
@@ -172,18 +172,15 @@ impl Plugin for Grainiac {
         _aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        self.sampler
-            .set_loop_start(0, self.params.instance_a.loop_start.value());
-        self.sampler
-            .set_loop_end(0, self.params.instance_a.loop_end.value());
-        self.sampler
-            .set_play_speed(0, self.params.instance_a.play_speed.value());
-        self.sampler
-            .set_density(0, self.params.instance_a.density.value());
-        self.sampler
-            .set_spray(0, self.params.instance_a.spray.value());
-        self.sampler
-            .set_grain_length(0, self.params.instance_a.grain_length.value());
+        for (i, instance) in self.params.instances.iter().enumerate() {
+            self.sampler.set_loop_start(i, instance.loop_start.value());
+            self.sampler.set_loop_end(i, instance.loop_end.value());
+            self.sampler.set_play_speed(i, instance.play_speed.value());
+            self.sampler.set_density(i, instance.density.value());
+            self.sampler.set_spray(i, instance.spray.value());
+            self.sampler
+                .set_grain_length(i, instance.grain_length.value());
+        }
 
         let mut next_event = context.next_event();
 
@@ -195,6 +192,11 @@ impl Plugin for Grainiac {
                     22 => {
                         if value > 0.0 {
                             self.sampler.record(0)
+                        }
+                    }
+                    23 => {
+                        if value > 0.0 {
+                            self.sampler.record(1)
                         }
                     }
                     _ => {

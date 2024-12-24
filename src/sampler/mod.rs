@@ -5,7 +5,7 @@ mod grain;
 mod voice;
 
 const VOICE_NUM: usize = 16;
-const INSTANCE_NUM: usize = 1;
+pub const INSTANCE_NUM: usize = 2;
 
 #[derive(Clone)]
 pub struct DrawData {
@@ -24,13 +24,13 @@ impl DrawData {
 
 pub struct Sampler {
     instances: Vec<Instance>,
-    pub draw_data: Input<DrawData>,
+    pub draw_data: Input<Vec<DrawData>>,
     draw_data_update_count: usize,
     sample_rate: f32,
 }
 
 impl Sampler {
-    pub fn new(sample_rate: f32, buf_input: Input<DrawData>) -> Self {
+    pub fn new(sample_rate: f32, buf_input: Input<Vec<DrawData>>) -> Self {
         Self {
             instances: {
                 let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
@@ -53,12 +53,12 @@ impl Sampler {
 
     fn get_draw_data(&mut self) {
         self.draw_data_update_count += 1;
-        if self.draw_data_update_count >= self.sample_rate as usize / 60 {
+        if self.draw_data_update_count >= self.sample_rate as usize / 33 {
             let draw_data = self.draw_data.input_buffer();
-            draw_data.voice_data.clear();
-            for instance in self.instances.iter() {
-                draw_data.voice_data.extend(instance.voice_data.clone());
-                draw_data.buffer = instance.buffer_to_draw.buffer.clone();
+            for (i, instance) in self.instances.iter().enumerate() {
+                draw_data[i].voice_data.clear();
+                draw_data[i].voice_data.extend(instance.voice_data.clone());
+                draw_data[i].buffer = instance.buffer_to_draw.buffer.clone();
             }
             self.draw_data.publish();
             self.draw_data_update_count = 0;
@@ -166,7 +166,6 @@ impl Instance {
     }
 
     pub fn record(&mut self) {
-        nih_plug::nih_log!("recording start");
         self.is_recording = true;
     }
 

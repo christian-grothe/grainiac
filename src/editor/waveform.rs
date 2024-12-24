@@ -10,12 +10,17 @@ use triple_buffer::Output;
 use crate::sampler::DrawData;
 
 pub struct Waveform {
-    draw_data: Arc<Mutex<Output<DrawData>>>,
+    draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
+    index: usize,
 }
 
 impl Waveform {
-    pub fn new(cx: &mut Context, draw_data: Arc<Mutex<Output<DrawData>>>) -> Handle<Self> {
-        Self { draw_data }.build(cx, |_cx| ())
+    pub fn new(
+        cx: &mut Context,
+        draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
+        index: usize,
+    ) -> Handle<Self> {
+        Self { draw_data, index }.build(cx, |_cx| ())
     }
 }
 
@@ -30,8 +35,8 @@ impl View for Waveform {
         }
 
         let mut draw_data = self.draw_data.lock().unwrap();
-        let buffer = draw_data.read().buffer.clone();
-        let voice_data = draw_data.read().voice_data.clone();
+        let buffer = draw_data.read()[self.index].buffer.clone();
+        let voice_data = draw_data.read()[self.index].voice_data.clone();
 
         let paint = Paint::color(Color::rgb(200, 200, 200));
         let mut path = Path::new();
