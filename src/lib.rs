@@ -14,45 +14,24 @@ pub struct Grainiac {
 }
 
 #[derive(Params)]
-struct GrainiacParams {
-    #[persist = "editor-state"]
-    editor_state: Arc<ViziaState>,
-
+struct InstanceParams {
     #[id = "loop_start"]
     pub loop_start: FloatParam,
-
     #[id = "loop_end"]
     pub loop_end: FloatParam,
-
     #[id = "play_speed"]
     pub play_speed: FloatParam,
-
     #[id = "density"]
     pub density: FloatParam,
-
     #[id = "spray"]
     pub spray: FloatParam,
-
     #[id = "grain_length"]
     pub grain_length: FloatParam,
 }
 
-impl Default for Grainiac {
-    fn default() -> Self {
-        let (buf_input, buf_output) = triple_buffer(&DrawData::new());
-        Self {
-            params: Arc::new(GrainiacParams::default()),
-            sampler: sampler::Sampler::new(48000.0, buf_input),
-            buf_output: Arc::new(Mutex::new(buf_output)),
-        }
-    }
-}
-
-impl Default for GrainiacParams {
-    fn default() -> Self {
-        Self {
-            editor_state: editor::default_state(),
-
+impl InstanceParams {
+    fn new() -> Self {
+        InstanceParams {
             loop_start: FloatParam::new(
                 "Loop Start",
                 0.25,
@@ -88,6 +67,35 @@ impl Default for GrainiacParams {
                 FloatRange::Linear { min: 0.1, max: 2.0 },
             )
             .with_unit(" sec"),
+        }
+    }
+}
+
+#[derive(Params)]
+struct GrainiacParams {
+    #[persist = "editor-state"]
+    editor_state: Arc<ViziaState>,
+
+    #[nested(id_prefix = "instance_a", group = "instances")]
+    instance_a: InstanceParams,
+}
+
+impl Default for Grainiac {
+    fn default() -> Self {
+        let (buf_input, buf_output) = triple_buffer(&DrawData::new());
+        Self {
+            params: Arc::new(GrainiacParams::default()),
+            sampler: sampler::Sampler::new(48000.0, buf_input),
+            buf_output: Arc::new(Mutex::new(buf_output)),
+        }
+    }
+}
+
+impl Default for GrainiacParams {
+    fn default() -> Self {
+        Self {
+            editor_state: editor::default_state(),
+            instance_a: InstanceParams::new(),
         }
     }
 }
@@ -165,14 +173,17 @@ impl Plugin for Grainiac {
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         self.sampler
-            .set_loop_start(0, self.params.loop_start.value());
-        self.sampler.set_loop_end(0, self.params.loop_end.value());
+            .set_loop_start(0, self.params.instance_a.loop_start.value());
         self.sampler
-            .set_play_speed(0, self.params.play_speed.value());
-        self.sampler.set_density(0, self.params.density.value());
-        self.sampler.set_spray(0, self.params.spray.value());
+            .set_loop_end(0, self.params.instance_a.loop_end.value());
         self.sampler
-            .set_grain_length(0, self.params.grain_length.value());
+            .set_play_speed(0, self.params.instance_a.play_speed.value());
+        self.sampler
+            .set_density(0, self.params.instance_a.density.value());
+        self.sampler
+            .set_spray(0, self.params.instance_a.spray.value());
+        self.sampler
+            .set_grain_length(0, self.params.instance_a.grain_length.value());
 
         let mut next_event = context.next_event();
 

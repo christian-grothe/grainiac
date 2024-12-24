@@ -25,6 +25,8 @@ impl DrawData {
 pub struct Sampler {
     instances: Vec<Instance>,
     pub draw_data: Input<DrawData>,
+    draw_data_update_count: usize,
+    sample_rate: f32,
 }
 
 impl Sampler {
@@ -38,6 +40,8 @@ impl Sampler {
                 instances
             },
             draw_data: buf_input,
+            draw_data_update_count: 0,
+            sample_rate,
         }
     }
 
@@ -48,13 +52,17 @@ impl Sampler {
     }
 
     fn get_draw_data(&mut self) {
-        let draw_data = self.draw_data.input_buffer();
-        draw_data.voice_data.clear();
-        for instance in self.instances.iter() {
-            draw_data.voice_data.extend(instance.voice_data.clone());
-            draw_data.buffer = instance.buffer_to_draw.buffer.clone();
+        self.draw_data_update_count += 1;
+        if self.draw_data_update_count >= self.sample_rate as usize / 60 {
+            let draw_data = self.draw_data.input_buffer();
+            draw_data.voice_data.clear();
+            for instance in self.instances.iter() {
+                draw_data.voice_data.extend(instance.voice_data.clone());
+                draw_data.buffer = instance.buffer_to_draw.buffer.clone();
+            }
+            self.draw_data.publish();
+            self.draw_data_update_count = 0;
         }
-        self.draw_data.publish();
     }
 
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
