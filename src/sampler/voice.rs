@@ -14,13 +14,13 @@ pub struct Voice {
     grains: Vec<Grain>,
     grain_trigger: Trigger,
     play_dircetion: PlayDirection,
-    env: Envelope,
+    pub env: Envelope,
     pub is_playing: bool,
     pub midi_note: usize,
     buffersize: usize,
     play_pos: f32,
-    loop_start: f32,
-    loop_end: f32,
+    pub loop_start: f32,
+    pub loop_end: f32,
     inc: f32,
     sample_rate: f32,
     pitch: f32,
@@ -83,6 +83,14 @@ impl Voice {
 
     pub fn set_grain_length(&mut self, grain_length: f32) {
         self.grain_length = grain_length;
+    }
+
+    pub fn set_attack(&mut self, attack: f32) {
+        self.env.inc_attack = 1.0 / (self.sample_rate * attack);
+    }
+
+    pub fn set_release(&mut self, release: f32) {
+        self.env.inc_release = 1.0 / (self.sample_rate * release);
     }
 
     pub fn note_on(&mut self, midi_note: usize) {
@@ -202,7 +210,7 @@ impl Trigger {
 }
 
 #[derive(PartialEq)]
-enum EnvelopeState {
+pub enum EnvelopeState {
     Attack,
     Release,
     Hold,
@@ -210,8 +218,9 @@ enum EnvelopeState {
 }
 
 #[allow(dead_code)]
-struct Envelope {
-    inc: f32,
+pub struct Envelope {
+    inc_attack: f32,
+    inc_release: f32,
     gain: f32,
     state: EnvelopeState,
     sample_rate: f32,
@@ -220,7 +229,8 @@ struct Envelope {
 impl Envelope {
     fn new(sample_rate: f32) -> Self {
         Self {
-            inc: 1.0 / (sample_rate * 5.0),
+            inc_attack: 1.0 / (sample_rate),
+            inc_release: 1.0 / (sample_rate),
             gain: 0.0,
             state: EnvelopeState::Off,
             sample_rate,
@@ -230,7 +240,7 @@ impl Envelope {
     fn update(&mut self) -> f32 {
         match self.state {
             EnvelopeState::Attack => {
-                self.gain += self.inc;
+                self.gain += self.inc_attack;
                 if self.gain >= 1.0 {
                     self.gain = 1.0;
                     self.state = EnvelopeState::Hold;
@@ -238,7 +248,7 @@ impl Envelope {
                 self.gain
             }
             EnvelopeState::Release => {
-                self.gain -= self.inc;
+                self.gain -= self.inc_release;
                 if self.gain <= 0.00011 {
                     self.gain = 0.00011;
                     self.state = EnvelopeState::Off;
@@ -249,7 +259,7 @@ impl Envelope {
         }
     }
 
-    fn set_state(&mut self, state: EnvelopeState) {
+    pub fn set_state(&mut self, state: EnvelopeState) {
         self.state = state;
     }
 }

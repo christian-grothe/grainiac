@@ -37,6 +37,7 @@ impl View for Waveform {
         let mut draw_data = self.draw_data.lock().unwrap();
         let buffer = draw_data.read()[self.index].buffer.clone();
         let voice_data = draw_data.read()[self.index].voice_data.clone();
+        let loop_area = draw_data.read()[self.index].loop_area.clone();
 
         let paint = Paint::color(Color::rgb(200, 200, 200));
         let mut path = Path::new();
@@ -67,5 +68,15 @@ impl View for Waveform {
             );
             canvas.stroke_path(&path, &paint);
         });
+
+        let paint = Paint::color(Color::rgba(200, 200, 200, 50));
+        let mut path = Path::new();
+        let x = bounds.w * loop_area.0;
+        let mut w = bounds.w * loop_area.1;
+        if x + w > bounds.w {
+            w = bounds.w - x;
+        }
+        path.rect(bounds.x + x, bounds.y, w, bounds.h);
+        canvas.fill_path(&path, &paint);
     }
 }

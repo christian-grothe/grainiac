@@ -6,7 +6,7 @@ use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
 use std::sync::{Arc, Mutex};
 use triple_buffer::Output;
 
-use crate::sampler::DrawData;
+use crate::sampler::{DrawData, INSTANCE_NUM};
 use crate::GrainiacParams;
 mod waveform;
 
@@ -18,7 +18,7 @@ struct Data {
 impl Model for Data {}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (600, 600))
+    ViziaState::new(|| (800, 1200))
 }
 
 pub(crate) fn create(
@@ -41,24 +41,8 @@ pub(crate) fn create(
 
         VStack::new(cx, |cx| {
             top_bar(cx);
-            instance_a(cx);
-            HStack::new(cx, |cx| {
-                waveform::Waveform::new(cx, draw_data.clone(), 0);
-            })
-            .left(Pixels(15.0))
-            .right(Pixels(15.0))
-            .bottom(Pixels(25.0))
-            .class("waveform");
-
-            instance_b(cx);
-            HStack::new(cx, |cx| {
-                waveform::Waveform::new(cx, draw_data.clone(), 1);
-            })
-            .left(Pixels(15.0))
-            .right(Pixels(15.0))
-            .bottom(Pixels(25.0))
-            .class("waveform");
-        });
+            (0..INSTANCE_NUM).for_each(|i| instace_waveform(cx, draw_data.clone(), i as usize));
+        }); 
     })
 }
 
@@ -77,71 +61,75 @@ fn top_bar(cx: &mut Context) {
     .width(Stretch(1.0));
 }
 
-fn instance_a(cx: &mut Context) {
-    VStack::new(cx, |cx| {
-        HStack::new(cx, |cx| {
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Loop Start");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].loop_start)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Loop End");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].loop_end)
-                    .set_style(ParamSliderStyle::FromLeft);
-            });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Play Speed");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].play_speed)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Density");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].density)
-                    .set_style(ParamSliderStyle::FromLeft);
-            });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Spray");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].spray)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Grain Length");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[0].grain_length)
-                    .set_style(ParamSliderStyle::FromLeft);
-            });
-        });
-    })
-    .left(Pixels(15.0))
-    .right(Pixels(15.0));
+fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
+    instance(cx, index);
+    waveform(cx, draw_data.clone(), index);
 }
 
-fn instance_b(cx: &mut Context) {
+fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
+    HStack::new(cx, |cx| {
+        waveform::Waveform::new(cx, draw_data.clone(), index);
+    })
+    .left(Pixels(15.0))
+    .right(Pixels(15.0))
+    .bottom(Pixels(25.0))
+    .class("waveform");
+}
+
+fn instance(cx: &mut Context, index: usize) {
     VStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
             VStack::new(cx, |cx| {
                 Label::new(cx, "Loop Start");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].loop_start)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Loop End");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].loop_end)
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].loop_start
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Loop Length");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].loop_length
+                })
+                .set_style(ParamSliderStyle::FromLeft);
             });
             VStack::new(cx, |cx| {
                 Label::new(cx, "Play Speed");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].play_speed)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].play_speed
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
                 Label::new(cx, "Density");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].density)
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].density
+                })
+                .set_style(ParamSliderStyle::FromLeft);
             });
             VStack::new(cx, |cx| {
                 Label::new(cx, "Spray");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].spray)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].spray
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
                 Label::new(cx, "Grain Length");
-                ParamSlider::new(cx, Data::params, |params| &params.instances[1].grain_length)
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].grain_length
+                })
+                .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Attack");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].attack
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Release");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].release
+                })
+                .set_style(ParamSliderStyle::FromLeft);
             });
         });
     })

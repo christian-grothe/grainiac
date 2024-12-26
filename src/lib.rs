@@ -17,8 +17,8 @@ pub struct Grainiac {
 struct InstanceParams {
     #[id = "loop_start"]
     pub loop_start: FloatParam,
-    #[id = "loop_end"]
-    pub loop_end: FloatParam,
+    #[id = "loop_length"]
+    pub loop_length: FloatParam,
     #[id = "play_speed"]
     pub play_speed: FloatParam,
     #[id = "density"]
@@ -27,6 +27,10 @@ struct InstanceParams {
     pub spray: FloatParam,
     #[id = "grain_length"]
     pub grain_length: FloatParam,
+    #[id = "attack"]
+    pub attack: FloatParam,
+    #[id = "release"]
+    pub release: FloatParam,
 }
 
 impl InstanceParams {
@@ -39,14 +43,15 @@ impl InstanceParams {
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
-            loop_end: FloatParam::new("Loop End", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
+            loop_length: FloatParam::new("Loop End", 0.25, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             play_speed: FloatParam::new(
                 "Play Speed",
                 1.0,
                 FloatRange::Linear { min: 0.0, max: 2.0 },
-            ),
+            )
+            .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             density: FloatParam::new(
                 "Density",
@@ -66,7 +71,16 @@ impl InstanceParams {
                 1.0,
                 FloatRange::Linear { min: 0.1, max: 2.0 },
             )
+            .with_value_to_string(formatters::v2s_f32_rounded(2))
             .with_unit(" sec"),
+
+            attack: FloatParam::new("Attack", 0.01, FloatRange::Linear { min: 0.0, max: 5.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2))
+                .with_unit(" sec"),
+
+            release: FloatParam::new("Release", 0.01, FloatRange::Linear { min: 0.0, max: 5.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2))
+                .with_unit(" sec"),
         }
     }
 }
@@ -174,12 +188,14 @@ impl Plugin for Grainiac {
     ) -> ProcessStatus {
         for (i, instance) in self.params.instances.iter().enumerate() {
             self.sampler.set_loop_start(i, instance.loop_start.value());
-            self.sampler.set_loop_end(i, instance.loop_end.value());
+            self.sampler.set_loop_length(i, instance.loop_length.value());
             self.sampler.set_play_speed(i, instance.play_speed.value());
             self.sampler.set_density(i, instance.density.value());
             self.sampler.set_spray(i, instance.spray.value());
             self.sampler
                 .set_grain_length(i, instance.grain_length.value());
+            self.sampler.set_attack(i, instance.attack.value());
+            self.sampler.set_release(i, instance.release.value());
         }
 
         let mut next_event = context.next_event();
@@ -197,6 +213,36 @@ impl Plugin for Grainiac {
                     23 => {
                         if value > 0.0 {
                             self.sampler.record(1)
+                        }
+                    }
+                    24 => {
+                        if value > 0.0 {
+                            self.sampler.record(2)
+                        }
+                    }
+                    25 => {
+                        if value > 0.0 {
+                            self.sampler.record(3)
+                        }
+                    }
+                    26 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(0)
+                        }
+                    }
+                    27 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(1)
+                        }
+                    }
+                    28 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(2)
+                        }
+                    }
+                    29 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(3)
                         }
                     }
                     _ => {

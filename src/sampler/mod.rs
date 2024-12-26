@@ -5,11 +5,12 @@ mod grain;
 mod voice;
 
 const VOICE_NUM: usize = 16;
-pub const INSTANCE_NUM: usize = 2;
+pub const INSTANCE_NUM: usize = 4;
 
 #[derive(Clone)]
 pub struct DrawData {
     pub voice_data: Vec<(f32, f32, f32)>,
+    pub loop_area: (f32, f32),
     pub buffer: Vec<f32>,
 }
 
@@ -17,6 +18,7 @@ impl DrawData {
     pub fn new() -> Self {
         Self {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+            loop_area: (0.0, 1.0),
             buffer: vec![0.0; 100],
         }
     }
@@ -59,6 +61,7 @@ impl Sampler {
                 draw_data[i].voice_data.clear();
                 draw_data[i].voice_data.extend(instance.voice_data.clone());
                 draw_data[i].buffer = instance.buffer_to_draw.buffer.clone();
+                draw_data[i].loop_area = instance.loop_area.clone();
             }
             self.draw_data.publish();
             self.draw_data_update_count = 0;
@@ -80,10 +83,12 @@ impl Sampler {
 
     pub fn note_on(&mut self, midi_note: usize) {
         for instance in self.instances.iter_mut() {
-            for voice in instance.voices.iter_mut() {
-                if !voice.is_playing {
-                    voice.note_on(midi_note);
-                    break;
+            if !instance.is_hold {
+                for voice in instance.voices.iter_mut() {
+                    if !voice.is_playing {
+                        voice.note_on(midi_note);
+                        break;
+                    }
                 }
             }
         }
@@ -91,10 +96,12 @@ impl Sampler {
 
     pub fn note_off(&mut self, midi_note: usize) {
         for instance in self.instances.iter_mut() {
-            for voice in instance.voices.iter_mut() {
-                if voice.midi_note == midi_note && !voice.is_release() {
-                    voice.note_off();
-                    break;
+            if !instance.is_hold {
+                for voice in instance.voices.iter_mut() {
+                    if voice.midi_note == midi_note && !voice.is_release() {
+                        voice.note_off();
+                        break;
+                    }
                 }
             }
         }
@@ -106,9 +113,17 @@ impl Sampler {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_loop_end(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
             instance.set_loop_end(value);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_loop_length(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            instance.set_loop_length(value);
         }
     }
 
@@ -135,6 +150,28 @@ impl Sampler {
             instance.set_grain_length(value);
         }
     }
+
+    pub fn toggle_hold(&mut self, index: usize) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            instance.toggle_hold();
+        }
+    }
+
+    pub fn set_attack(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            for voice in instance.voices.iter_mut() {
+                voice.set_attack(value);
+            }
+        }
+    }
+
+    pub fn set_release(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            for voice in instance.voices.iter_mut() {
+                voice.set_release(value);
+            }
+        }
+    }
 }
 
 struct Instance {
@@ -144,6 +181,8 @@ struct Instance {
     is_recording: bool,
     voices: Vec<Voice>,
     voice_data: Vec<(f32, f32, f32)>,
+    is_hold: bool,
+    loop_area: (f32, f32),
 }
 
 impl Instance {
@@ -162,6 +201,8 @@ impl Instance {
                 voices
             },
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+            is_hold: false,
+            loop_area: (0.0, 1.0),
         }
     }
 
@@ -176,14 +217,31 @@ impl Instance {
     }
 
     fn set_loop_start(&mut self, value: f32) {
+        self.loop_area.0 = value;
         for voice in self.voices.iter_mut() {
             voice.set_loop_start(value);
         }
     }
 
+    #[allow(dead_code)]
     fn set_loop_end(&mut self, value: f32) {
+        self.loop_area.1 = value;
         for voice in self.voices.iter_mut() {
             voice.set_loop_end(value);
+        }
+    }
+
+    #[allow(dead_code)]
+    fn set_loop_length(&mut self, value: f32) {
+        self.loop_area.1 = value;
+        let mut end = self.loop_area.0 + value;
+
+        if end > 1.0 {
+            end = 1.0;
+        }
+
+        for voice in self.voices.iter_mut() {
+            voice.set_loop_end(end);
         }
     }
 
@@ -202,6 +260,27 @@ impl Instance {
     fn set_grain_length(&mut self, value: f32) {
         for voice in self.voices.iter_mut() {
             voice.set_grain_length(value);
+        }
+    }
+
+    fn toggle_hold(&mut self) {
+        match self.is_hold {
+            true => {
+                for voice in self.voices.iter_mut() {
+                    if voice.midi_note != 0 {
+                        voice.env.set_state(voice::EnvelopeState::Release);
+                    }
+                }
+                self.is_hold = false;
+            }
+            false => {
+                for voice in self.voices.iter_mut() {
+                    if voice.midi_note != 0 {
+                        voice.env.set_state(voice::EnvelopeState::Hold);
+                    }
+                }
+                self.is_hold = true;
+            }
         }
     }
 
