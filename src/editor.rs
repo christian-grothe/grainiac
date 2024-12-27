@@ -42,7 +42,7 @@ pub(crate) fn create(
         VStack::new(cx, |cx| {
             top_bar(cx);
             (0..INSTANCE_NUM).for_each(|i| instace_waveform(cx, draw_data.clone(), i as usize));
-        }); 
+        });
     })
 }
 
