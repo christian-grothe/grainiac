@@ -7,7 +7,7 @@ use nih_plug_vizia::vizia::{
 };
 use triple_buffer::Output;
 
-use crate::sampler::DrawData;
+use grainiac_core::DrawData;
 
 pub struct Waveform {
     draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,

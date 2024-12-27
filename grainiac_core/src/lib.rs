@@ -1,3 +1,4 @@
+#[cfg(feature = "draw_data")]
 use triple_buffer::Input;
 use voice::{Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
 
@@ -7,6 +8,7 @@ mod voice;
 const VOICE_NUM: usize = 16;
 pub const INSTANCE_NUM: usize = 4;
 
+#[cfg(feature = "draw_data")]
 #[derive(Clone)]
 pub struct DrawData {
     pub voice_data: Vec<(f32, f32, f32)>,
@@ -14,6 +16,7 @@ pub struct DrawData {
     pub buffer: Vec<f32>,
 }
 
+#[cfg(feature = "draw_data")]
 impl DrawData {
     pub fn new() -> Self {
         Self {
@@ -26,12 +29,16 @@ impl DrawData {
 
 pub struct Sampler {
     instances: Vec<Instance>,
+    #[cfg(feature = "draw_data")]
     pub draw_data: Input<Vec<DrawData>>,
+    #[cfg(feature = "draw_data")]
     draw_data_update_count: usize,
+    #[cfg(feature = "draw_data")]
     sample_rate: f32,
 }
 
 impl Sampler {
+    #[cfg(feature = "draw_data")]
     pub fn new(sample_rate: f32, buf_input: Input<Vec<DrawData>>) -> Self {
         Self {
             instances: {
@@ -53,6 +60,7 @@ impl Sampler {
         }
     }
 
+    #[cfg(feature = "draw_data")]
     fn get_draw_data(&mut self) {
         self.draw_data_update_count += 1;
         if self.draw_data_update_count >= self.sample_rate as usize / 33 {
@@ -76,6 +84,7 @@ impl Sampler {
             output_l += l;
             output_r += r;
         }
+        #[cfg(feature = "draw_data")]
         self.get_draw_data();
         *stereo_slice.0 = output_l;
         *stereo_slice.1 = output_r;
@@ -294,7 +303,6 @@ impl Instance {
             self.write_index = 0;
             self.is_recording = false;
             self.buffer_to_draw.reset();
-            nih_plug::nih_log!("recording finished");
         }
     }
 

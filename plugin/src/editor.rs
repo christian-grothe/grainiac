@@ -6,7 +6,7 @@ use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
 use std::sync::{Arc, Mutex};
 use triple_buffer::Output;
 
-use crate::sampler::{DrawData, INSTANCE_NUM};
+use grainiac_core::{DrawData, INSTANCE_NUM};
 use crate::GrainiacParams;
 mod waveform;
 

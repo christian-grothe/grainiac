@@ -14,15 +14,11 @@ members = ["xtask"]
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-# Remove the `assert_process_allocs` feature to allow allocations on the audio
-# thread in debug builds.
+grainiac_core = { path = "../grainiac_core", features=["draw_data"]}
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs","standalone"] }
-rand = "0.8.5"
 nih_plug_vizia = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+rand = "0.8.5"
 triple_buffer = "8.0.0"
-# Uncomment the below line to disable the on-by-default VST3 feature to remove
-# the GPL compatibility requirement
-# nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", default-features = false, features = ["assert_process_allocs"] }
 
 [profile.release]
 lto = "thin"
