@@ -1,8 +1,8 @@
+use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
 use std::sync::{Arc, Mutex};
 use triple_buffer::triple_buffer;
-use grainiac_core::*;
 
 mod editor;
 
@@ -30,6 +30,15 @@ struct InstanceParams {
     pub attack: FloatParam,
     #[id = "release"]
     pub release: FloatParam,
+    #[id = "pitch"]
+    pub pitch: FloatParam,
+    #[id = "gain"]
+    pub gain: FloatParam,
+    #[id = "spread"]
+    pub spread: FloatParam,
+    #[id = "pan"]
+    pub pan: FloatParam,
+
 }
 
 impl InstanceParams {
@@ -42,8 +51,12 @@ impl InstanceParams {
             )
             .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
-            loop_length: FloatParam::new("Loop End", 0.25, FloatRange::Linear { min: 0.0, max: 1.0 })
-                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            loop_length: FloatParam::new(
+                "Loop End",
+                0.25,
+                FloatRange::Linear { min: 0.0, max: 1.0 },
+            )
+            .with_value_to_string(formatters::v2s_f32_percentage(0)),
 
             play_speed: FloatParam::new(
                 "Play Speed",
@@ -80,6 +93,18 @@ impl InstanceParams {
             release: FloatParam::new("Release", 0.01, FloatRange::Linear { min: 0.0, max: 5.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2))
                 .with_unit(" sec"),
+
+            pitch: FloatParam::new("Pitch", 1.0, FloatRange::Linear { min: 0.5, max: 2.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+
+            gain: FloatParam::new("Gain", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+
+            pan: FloatParam::new("Pan", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+
+            spread: FloatParam::new("Spread", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
         }
     }
 }
@@ -187,7 +212,8 @@ impl Plugin for Grainiac {
     ) -> ProcessStatus {
         for (i, instance) in self.params.instances.iter().enumerate() {
             self.sampler.set_loop_start(i, instance.loop_start.value());
-            self.sampler.set_loop_length(i, instance.loop_length.value());
+            self.sampler
+                .set_loop_length(i, instance.loop_length.value());
             self.sampler.set_play_speed(i, instance.play_speed.value());
             self.sampler.set_density(i, instance.density.value());
             self.sampler.set_spray(i, instance.spray.value());
@@ -195,6 +221,10 @@ impl Plugin for Grainiac {
                 .set_grain_length(i, instance.grain_length.value());
             self.sampler.set_attack(i, instance.attack.value());
             self.sampler.set_release(i, instance.release.value());
+            self.sampler.set_gain(i, instance.gain.value());
+            self.sampler.set_global_pitch(i, instance.pitch.value());
+            self.sampler.set_pan(i, instance.pan.value());
+            self.sampler.set_spread(i, instance.spread.value());
         }
 
         let mut next_event = context.next_event();

@@ -1,6 +1,6 @@
 use super::grain::Grain;
 
-pub const GRAIN_NUM: usize = 40;
+pub const GRAIN_NUM: usize = 256;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
 #[allow(dead_code)]
@@ -9,23 +9,25 @@ enum PlayDirection {
     Backward,
 }
 
-#[allow(dead_code)]
 pub struct Voice {
-    grains: Vec<Grain>,
-    grain_trigger: Trigger,
-    play_dircetion: PlayDirection,
     pub env: Envelope,
     pub is_playing: bool,
     pub midi_note: usize,
-    buffersize: usize,
-    play_pos: f32,
     pub loop_start: f32,
     pub loop_end: f32,
+    grains: Vec<Grain>,
+    grain_trigger: Trigger,
+    play_dircetion: PlayDirection,
+    buffersize: usize,
+    play_pos: f32,
     inc: f32,
     sample_rate: f32,
     pitch: f32,
+    global_pitch: f32,
     gain: f32,
     spray: f32,
+    spread: f32,
+    pan: f32,
     grain_length: f32,
     grain_data: Vec<(f32, f32, f32)>,
 }
@@ -54,10 +56,13 @@ impl Voice {
             inc,
             sample_rate,
             pitch: 1.0,
+            global_pitch: 1.0,
             gain: 0.0,
             spray: 0.1,
             grain_length: 1.0,
             grain_data: Vec::with_capacity(GRAIN_NUM),
+            spread: 0.0,
+            pan: 0.0,
         }
     }
 
@@ -81,6 +86,14 @@ impl Voice {
         self.spray = spray;
     }
 
+    pub fn set_spread(&mut self, spread: f32) {
+        self.spread = spread;
+    }
+
+    pub fn set_pan(&mut self, pan: f32) {
+        self.pan = pan;
+    }
+
     pub fn set_grain_length(&mut self, grain_length: f32) {
         self.grain_length = grain_length;
     }
@@ -91,6 +104,10 @@ impl Voice {
 
     pub fn set_release(&mut self, release: f32) {
         self.env.inc_release = 1.0 / (self.sample_rate * release);
+    }
+
+    pub fn set_global_pitch(&mut self, global_pitch: f32) {
+        self.global_pitch = global_pitch;
     }
 
     pub fn note_on(&mut self, midi_note: usize) {
@@ -136,11 +153,13 @@ impl Voice {
                 }
 
                 if !grain.active {
+                    let stereo_pos = self.pan + self.spread * ((rand::random::<f32>() * 2.0) - 1.0);
                     grain.activate(
                         (self.sample_rate * self.grain_length) as usize,
                         pos,
-                        self.pitch,
+                        self.pitch * self.global_pitch,
                         self.buffersize,
+                        stereo_pos.clamp(-1.0, 1.0),
                     );
                     break;
                 }
@@ -202,6 +221,7 @@ impl Trigger {
 
     fn reset(&mut self) {
         self.phase = 0.0;
+        self.is_reset = true;
     }
 
     fn set_freq(&mut self, frequency: f32) {
@@ -249,8 +269,8 @@ impl Envelope {
             }
             EnvelopeState::Release => {
                 self.gain -= self.inc_release;
-                if self.gain <= 0.00011 {
-                    self.gain = 0.00011;
+                if self.gain <= 0.000011 {
+                    self.gain = 0.0;
                     self.state = EnvelopeState::Off;
                 }
                 self.gain

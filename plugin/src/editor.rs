@@ -6,8 +6,8 @@ use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
 use std::sync::{Arc, Mutex};
 use triple_buffer::Output;
 
-use grainiac_core::{DrawData, INSTANCE_NUM};
 use crate::GrainiacParams;
+use grainiac_core::{DrawData, INSTANCE_NUM};
 mod waveform;
 
 #[derive(Lens)]
@@ -18,7 +18,7 @@ struct Data {
 impl Model for Data {}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (800, 1200))
+    ViziaState::new(|| (800, 1000))
 }
 
 pub(crate) fn create(
@@ -72,6 +72,7 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
     })
     .left(Pixels(15.0))
     .right(Pixels(15.0))
+    .top(Pixels(15.0))
     .bottom(Pixels(25.0))
     .class("waveform");
 }
@@ -128,6 +129,32 @@ fn instance(cx: &mut Context, index: usize) {
                 Label::new(cx, "Release");
                 ParamSlider::new(cx, Data::params, move |params| {
                     &params.instances[index].release
+                })
+                .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Pan");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].pan
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Spread");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].spread
+                })
+                .set_style(ParamSliderStyle::FromLeft);
+            });
+            VStack::new(cx, |cx| {
+                Label::new(cx, "Pitch");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].pitch
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
+                Label::new(cx, "Gain");
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].gain
                 })
                 .set_style(ParamSliderStyle::FromLeft);
             });

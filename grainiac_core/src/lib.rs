@@ -54,6 +54,19 @@ impl Sampler {
         }
     }
 
+    #[cfg(not(feature = "draw_data"))]
+    pub fn new(sample_rate: f32) -> Self {
+        Self {
+            instances: {
+                let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
+                for _ in 0..INSTANCE_NUM {
+                    instances.push(Instance::new(sample_rate))
+                }
+                instances
+            },
+        }
+    }
+
     pub fn record(&mut self, instance_index: usize) {
         if let Some(instance) = self.instances.get_mut(instance_index) {
             instance.record();
@@ -181,6 +194,36 @@ impl Sampler {
             }
         }
     }
+
+    pub fn set_global_pitch(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            for voice in instance.voices.iter_mut() {
+                voice.set_global_pitch(value);
+            }
+        }
+    }
+
+    pub fn set_gain(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            instance.set_gain(value);
+        }
+    }
+
+    pub fn set_spread(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            for voice in instance.voices.iter_mut() {
+                voice.set_spread(value);
+            }
+        }
+    }
+
+    pub fn set_pan(&mut self, index: usize, value: f32) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            for voice in instance.voices.iter_mut() {
+                voice.set_pan(value);
+            }
+        }
+    }
 }
 
 struct Instance {
@@ -192,6 +235,7 @@ struct Instance {
     voice_data: Vec<(f32, f32, f32)>,
     is_hold: bool,
     loop_area: (f32, f32),
+    gain: f32,
 }
 
 impl Instance {
@@ -212,6 +256,7 @@ impl Instance {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             is_hold: false,
             loop_area: (0.0, 1.0),
+            gain: 0.0,
         }
     }
 
@@ -272,6 +317,10 @@ impl Instance {
         }
     }
 
+    fn set_gain(&mut self, value: f32) {
+        self.gain = value;
+    }
+
     fn toggle_hold(&mut self) {
         match self.is_hold {
             true => {
@@ -324,8 +373,8 @@ impl Instance {
             let next_index = (play_index_int + 1) % self.buffer.len();
             let frac = pos * self.buffer.len() as f32 - play_index_int as f32;
 
-            let left_gain = 0.5 * (1.0 - stereo_pos);
-            let right_gain = 0.5 * (1.0 + stereo_pos);
+            let left_gain = 0.5 * (1.0 - stereo_pos) * self.gain;
+            let right_gain = 0.5 * (1.0 + stereo_pos) * self.gain;
 
             let next_sample =
                 self.buffer[play_index_int] * (1.0 - frac) + self.buffer[next_index] * frac;

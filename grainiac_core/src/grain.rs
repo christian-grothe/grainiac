@@ -13,13 +13,20 @@ pub struct Grain {
 }
 
 impl Grain {
-    pub fn activate(&mut self, length: usize, start_pos: f32, pitch: f32, buffer_size: usize) {
+    pub fn activate(
+        &mut self,
+        length: usize,
+        start_pos: f32,
+        pitch: f32,
+        buffer_size: usize,
+        stereo_pos: f32,
+    ) {
         self.active = true;
         self.pos = start_pos;
         self.length = length;
         self.env.set_inc(1.0 / length as f32);
         self.inc = pitch / buffer_size as f32;
-        self.stereo_pos = rand::random::<f32>() * 2.0 - 1.0;
+        self.stereo_pos = stereo_pos;
     }
 
     pub fn update(&mut self, gain: f32) -> (f32, f32, f32) {
