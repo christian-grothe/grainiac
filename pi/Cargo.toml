@@ -1,9 +1,0 @@
-[package]
-name = "pi"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-rtaudio = { version = "0.3.2", features = ["pulse", "alsa"] }
-grainiac_core = { path = "../grainiac_core" }
-midir = "0.10.1"

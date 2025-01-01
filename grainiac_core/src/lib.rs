@@ -104,6 +104,7 @@ impl Sampler {
     }
 
     pub fn note_on(&mut self, midi_note: usize) {
+        println!("Note on: {}", midi_note);
         for instance in self.instances.iter_mut() {
             if !instance.is_hold {
                 for voice in instance.voices.iter_mut() {
@@ -117,6 +118,7 @@ impl Sampler {
     }
 
     pub fn note_off(&mut self, midi_note: usize) {
+        println!("Note off: {}", midi_note);
         for instance in self.instances.iter_mut() {
             if !instance.is_hold {
                 for voice in instance.voices.iter_mut() {
@@ -228,6 +230,7 @@ impl Sampler {
 
 struct Instance {
     buffer: Vec<f32>,
+    #[cfg(feature = "draw_data")]
     buffer_to_draw: BufferToDraw,
     write_index: usize,
     is_recording: bool,
@@ -239,6 +242,7 @@ struct Instance {
 }
 
 impl Instance {
+    #[cfg(feature = "draw_data")]
     pub fn new(sample_rate: f32) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
         Self {
@@ -256,12 +260,37 @@ impl Instance {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             is_hold: false,
             loop_area: (0.0, 1.0),
-            gain: 0.0,
+            gain: 0.5,
+        }
+    }
+        
+    #[cfg(not(feature = "draw_data"))]
+    pub fn new(sample_rate: f32) -> Self {
+        let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
+        Self {
+            buffer: vec![0.0; buffersize],
+            write_index: 0,
+            is_recording: false,
+            voices: {
+                let mut voices: Vec<Voice> = Vec::with_capacity(VOICE_NUM);
+                for _ in 0..VOICE_NUM {
+                    voices.push(Voice::new(sample_rate));
+                }
+                voices
+            },
+            voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+            is_hold: false,
+            loop_area: (0.0, 1.0),
+            gain: 0.5,
         }
     }
 
     pub fn record(&mut self) {
+        println!("Recording");
         self.is_recording = true;
+        self.write_index = 0;
+        #[cfg(feature = "draw_data")]
+        self.buffer_to_draw.reset();
     }
 
     fn set_play_speed(&mut self, value: f32) {
@@ -346,11 +375,14 @@ impl Instance {
         self.buffer[self.write_index] = sample;
         self.write_index = self.write_index + 1;
 
+        #[cfg(feature = "draw_data")]
         self.buffer_to_draw.update(sample);
 
         if self.write_index >= self.buffer.len() {
+            println!("Buffer full");
             self.write_index = 0;
             self.is_recording = false;
+            #[cfg(feature = "draw_data")]
             self.buffer_to_draw.reset();
         }
     }
@@ -389,6 +421,7 @@ impl Instance {
     }
 }
 
+#[cfg(feature = "draw_data")]
 struct BufferToDraw {
     buffer: Vec<f32>,
     samples_per_bar: usize,
@@ -397,6 +430,7 @@ struct BufferToDraw {
     sample_sum: f32,
 }
 
+#[cfg(feature = "draw_data")]
 impl BufferToDraw {
     fn new(bars: usize, original_size: usize) -> Self {
         Self {
