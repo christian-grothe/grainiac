@@ -53,6 +53,10 @@ fn main() {
                     144 => state.sampler.note_on(event.bytes[1] as usize),
                     128 => state.sampler.note_off(event.bytes[1] as usize),
                     176 => match event.bytes[1] {
+                        18 => {
+                            let value = event.bytes[2] as f32 / 127.0;
+                            state.sampler.set_play_speed(0, value);
+                        }
                         22 => {
                             if event.bytes[2] > 0 {
                                 state.sampler.record(0);

@@ -61,7 +61,7 @@ impl Voice {
             spray: 0.1,
             grain_length: 1.0,
             grain_data: Vec::with_capacity(GRAIN_NUM),
-            spread: 0.0,
+            spread: 0.5,
             pan: 0.0,
         }
     }

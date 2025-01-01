@@ -104,7 +104,6 @@ impl Sampler {
     }
 
     pub fn note_on(&mut self, midi_note: usize) {
-        println!("Note on: {}", midi_note);
         for instance in self.instances.iter_mut() {
             if !instance.is_hold {
                 for voice in instance.voices.iter_mut() {
@@ -118,7 +117,6 @@ impl Sampler {
     }
 
     pub fn note_off(&mut self, midi_note: usize) {
-        println!("Note off: {}", midi_note);
         for instance in self.instances.iter_mut() {
             if !instance.is_hold {
                 for voice in instance.voices.iter_mut() {
@@ -286,7 +284,6 @@ impl Instance {
     }
 
     pub fn record(&mut self) {
-        println!("Recording");
         self.is_recording = true;
         self.write_index = 0;
         #[cfg(feature = "draw_data")]
@@ -379,7 +376,6 @@ impl Instance {
         self.buffer_to_draw.update(sample);
 
         if self.write_index >= self.buffer.len() {
-            println!("Buffer full");
             self.write_index = 0;
             self.is_recording = false;
             #[cfg(feature = "draw_data")]
