@@ -1,34 +1,44 @@
-fn main() {
-    let (client, _status) = jack::Client::new("grainiac", jack::ClientOptions::default()).unwrap();
+use std::{
+    io::{self, stdout},
+    time::{Duration, Instant},
+};
+
+use grainiac_core::Sampler;
+use jack::{AudioIn, AudioOut, Client, ClientOptions, MidiIn, Port};
+use ratatui::crossterm::{
+    event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
+    execute,
+};
+
+mod state;
+mod ui;
+mod waveform_widget;
+
+fn main() -> io::Result<()> {
+    let (client, _status) = Client::new("grainiac", ClientOptions::default()).unwrap();
 
     let out_port_l = client
-        .register_port("output_l", jack::AudioOut::default())
+        .register_port("output_l", AudioOut::default())
         .unwrap();
 
     let out_port_r = client
-        .register_port("output_r", jack::AudioOut::default())
+        .register_port("output_r", AudioOut::default())
         .unwrap();
 
-    let input_port_l = client
-        .register_port("input_l", jack::AudioIn::default())
-        .unwrap();
+    let input_port_l = client.register_port("input_l", AudioIn::default()).unwrap();
 
-    let input_port_r = client
-        .register_port("input_r", jack::AudioIn::default())
-        .unwrap();
+    let input_port_r = client.register_port("input_r", AudioIn::default()).unwrap();
 
-    let midi_in_port = client
-        .register_port("midi_in", jack::MidiIn::default())
-        .unwrap();
+    let midi_in_port = client.register_port("midi_in", MidiIn::default()).unwrap();
 
-    let sampler = grainiac_core::Sampler::new(48000.0);
+    let (sampler, out_buf) = Sampler::new(48000.0);
 
     struct Ports {
-        input_l: jack::Port<jack::AudioIn>,
-        input_r: jack::Port<jack::AudioIn>,
-        output_l: jack::Port<jack::AudioOut>,
-        output_r: jack::Port<jack::AudioOut>,
-        midi_in: jack::Port<jack::MidiIn>,
+        input_l: Port<AudioIn>,
+        input_r: Port<AudioIn>,
+        output_l: Port<AudioOut>,
+        output_r: Port<AudioOut>,
+        midi_in: Port<MidiIn>,
         sampler: grainiac_core::Sampler,
     }
 
@@ -55,7 +65,11 @@ fn main() {
                     176 => match event.bytes[1] {
                         18 => {
                             let value = event.bytes[2] as f32 / 127.0;
-                            state.sampler.set_play_speed(0, value);
+                            state.sampler.set_loop_start(0, value);
+                        }
+                        19 => {
+                            let value = event.bytes[2] as f32 / 127.0;
+                            state.sampler.set_loop_length(0, value);
                         }
                         22 => {
                             if event.bytes[2] > 0 {
@@ -112,7 +126,28 @@ fn main() {
     //     .connect_ports_by_name("grainiac:input_r", "system:capture_2")
     //     .unwrap();
 
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+    let mut state = state::State::new(out_buf);
+    let mut terminal = ratatui::init();
+    let mut stdout = stdout();
+
+    execute!(
+        stdout,
+        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+    )?;
+
+    let tick_rate = Duration::from_millis(60);
+    let mut last_tick = Instant::now();
+
+    while !state.exiting {
+        state.handle_event(1)?;
+        if last_tick.elapsed() >= tick_rate {
+            last_tick = Instant::now();
+
+            terminal.draw(|f| ui::draw(f, &mut state))?;
+        }
     }
+
+    ratatui::restore();
+
+    Ok(())
 }

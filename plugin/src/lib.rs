@@ -2,7 +2,6 @@ use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
 use std::sync::{Arc, Mutex};
-use triple_buffer::triple_buffer;
 
 mod editor;
 
@@ -120,10 +119,11 @@ struct GrainiacParams {
 
 impl Default for Grainiac {
     fn default() -> Self {
-        let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); INSTANCE_NUM]);
+        let (sampler, buf_output) = Sampler::new(48000.0);
+
         Self {
             params: Arc::new(GrainiacParams::default()),
-            sampler: Sampler::new(48000.0, buf_input),
+            sampler,
             buf_output: Arc::new(Mutex::new(buf_output)),
         }
     }

@@ -1,5 +1,5 @@
 #[cfg(feature = "draw_data")]
-use triple_buffer::Input;
+pub use triple_buffer::{triple_buffer, Input, Output};
 use voice::{Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
 
 mod grain;
@@ -39,19 +39,23 @@ pub struct Sampler {
 
 impl Sampler {
     #[cfg(feature = "draw_data")]
-    pub fn new(sample_rate: f32, buf_input: Input<Vec<DrawData>>) -> Self {
-        Self {
-            instances: {
-                let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
-                for _ in 0..INSTANCE_NUM {
-                    instances.push(Instance::new(sample_rate))
-                }
-                instances
+    pub fn new(sample_rate: f32) -> (Self, Output<Vec<DrawData>>) {
+        let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); INSTANCE_NUM]);
+        (
+            Self {
+                instances: {
+                    let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
+                    for _ in 0..INSTANCE_NUM {
+                        instances.push(Instance::new(sample_rate))
+                    }
+                    instances
+                },
+                draw_data: buf_input,
+                draw_data_update_count: 0,
+                sample_rate,
             },
-            draw_data: buf_input,
-            draw_data_update_count: 0,
-            sample_rate,
-        }
+            buf_output,
+        )
     }
 
     #[cfg(not(feature = "draw_data"))]
@@ -261,7 +265,7 @@ impl Instance {
             gain: 0.5,
         }
     }
-        
+
     #[cfg(not(feature = "draw_data"))]
     pub fn new(sample_rate: f32) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
