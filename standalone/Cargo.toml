@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 jack = "0.13.0"
-grainiac_core = { path = "../grainiac_core", features = ["draw_data"] }
+grainiac_core = { path = "../grainiac_core" }
 ratatui = "0.29.0"

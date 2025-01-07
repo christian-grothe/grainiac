@@ -1,6 +1,7 @@
 const BRAILLE_EMPTY: char = ' ';
 const BRAILLE_FULL: char = '⡇';
 const BRAILLE_CENTER: char = '⠆';
+const BRAILLE_SINGLE: char = '⠂';
 const BRAILLE_1B: char = '⡀';
 const BRAILLE_2B: char = '⡄';
 const BRAILLE_3B: char = '⡆';
@@ -11,7 +12,7 @@ const BRAILLE_3T: char = '⠇';
 const STATE_0: [char; 5] = [
     BRAILLE_EMPTY,
     BRAILLE_EMPTY,
-    BRAILLE_EMPTY,
+    BRAILLE_SINGLE,
     BRAILLE_EMPTY,
     BRAILLE_EMPTY,
 ];

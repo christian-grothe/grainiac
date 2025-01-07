@@ -63,37 +63,45 @@ fn main() -> io::Result<()> {
                     144 => state.sampler.note_on(event.bytes[1] as usize),
                     128 => state.sampler.note_off(event.bytes[1] as usize),
                     176 => match event.bytes[1] {
-                        18 => {
+                        23 => {
                             let value = event.bytes[2] as f32 / 127.0;
                             state.sampler.set_loop_start(0, value);
                         }
-                        19 => {
+                        24 => {
                             let value = event.bytes[2] as f32 / 127.0;
                             state.sampler.set_loop_length(0, value);
                         }
-                        22 => {
+                        25 => {
+                            let value = event.bytes[2] as f32 / 127.0;
+                            state.sampler.set_global_pitch(0, value * 1.5 + 0.5);
+                        }
+                        26 => {
+                            let value = event.bytes[2] as f32 / 127.0;
+                            state.sampler.set_play_speed(0, value * 2.0);
+                        }
+                        27 => {
                             if event.bytes[2] > 0 {
                                 state.sampler.record(0);
                             }
                         }
-                        23 => {
+                        28 => {
                             if event.bytes[2] > 0 {
-                                state.sampler.record(1);
+                                state.sampler.toggle_hold(0);
                             }
                         }
-                        24 => {
+                        29 => {
                             if event.bytes[2] > 0 {
-                                state.sampler.record(2);
+                                state.sampler.toggle_play_dir(0);
                             }
                         }
-                        25 => {
-                            if event.bytes[2] > 0 {
-                                state.sampler.record(3);
-                            }
-                        }
+                        // 30 => {
+                        //     if event.bytes[2] > 0 {
+                        //         state.sampler.record(3);
+                        //     }
+                        // }
                         _ => println!("{:?}", event.bytes),
                     },
-                    _ => println!("{:?}", event.bytes),
+                    _ => {} // println!("{:?}", event.bytes),
                 }
             }
 

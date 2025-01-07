@@ -1,44 +1,47 @@
-#[cfg(feature = "draw_data")]
 pub use triple_buffer::{triple_buffer, Input, Output};
-use voice::{Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
+use voice::{PlayDirection, Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
 
 mod grain;
-mod voice;
+pub mod voice;
 
 const VOICE_NUM: usize = 16;
 pub const INSTANCE_NUM: usize = 4;
 
-#[cfg(feature = "draw_data")]
 #[derive(Clone)]
 pub struct DrawData {
     pub voice_data: Vec<(f32, f32, f32)>,
     pub loop_area: (f32, f32),
     pub buffer: Vec<f32>,
+    pub pitch: f32,
+    pub play_speed: f32,
+    pub play_dir: PlayDirection,
+    pub grain_dir: PlayDirection,
+    pub is_hold: bool,
 }
 
-#[cfg(feature = "draw_data")]
 impl DrawData {
     pub fn new() -> Self {
         Self {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             loop_area: (0.0, 1.0),
             buffer: vec![0.0; 100],
+            pitch: 1.0,
+            play_speed: 1.0,
+            play_dir: PlayDirection::Forward,
+            grain_dir: PlayDirection::Forward,
+            is_hold:false,
         }
     }
 }
 
 pub struct Sampler {
     instances: Vec<Instance>,
-    #[cfg(feature = "draw_data")]
     pub draw_data: Input<Vec<DrawData>>,
-    #[cfg(feature = "draw_data")]
     draw_data_update_count: usize,
-    #[cfg(feature = "draw_data")]
     sample_rate: f32,
 }
 
 impl Sampler {
-    #[cfg(feature = "draw_data")]
     pub fn new(sample_rate: f32) -> (Self, Output<Vec<DrawData>>) {
         let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); INSTANCE_NUM]);
         (
@@ -58,26 +61,12 @@ impl Sampler {
         )
     }
 
-    #[cfg(not(feature = "draw_data"))]
-    pub fn new(sample_rate: f32) -> Self {
-        Self {
-            instances: {
-                let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
-                for _ in 0..INSTANCE_NUM {
-                    instances.push(Instance::new(sample_rate))
-                }
-                instances
-            },
-        }
-    }
-
     pub fn record(&mut self, instance_index: usize) {
         if let Some(instance) = self.instances.get_mut(instance_index) {
             instance.record();
         }
     }
 
-    #[cfg(feature = "draw_data")]
     fn get_draw_data(&mut self) {
         self.draw_data_update_count += 1;
         if self.draw_data_update_count >= self.sample_rate as usize / 33 {
@@ -87,6 +76,10 @@ impl Sampler {
                 draw_data[i].voice_data.extend(instance.voice_data.clone());
                 draw_data[i].buffer = instance.buffer_to_draw.buffer.clone();
                 draw_data[i].loop_area = instance.loop_area.clone();
+                draw_data[i].play_speed = instance.play_speed;
+                draw_data[i].pitch = instance.pitch;
+                draw_data[i].is_hold = instance.is_hold;
+                draw_data[i].play_dir = instance.play_dir.clone();
             }
             self.draw_data.publish();
             self.draw_data_update_count = 0;
@@ -96,12 +89,12 @@ impl Sampler {
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
         let mut output_r = 0.0;
+        let mono = *stereo_slice.0 + *stereo_slice.1;
         for instance in self.instances.iter_mut() {
-            let (l, r) = instance.render(stereo_slice.0);
+            let (l, r) = instance.render(&mono);
             output_l += l;
             output_r += r;
         }
-        #[cfg(feature = "draw_data")]
         self.get_draw_data();
         *stereo_slice.0 = output_l;
         *stereo_slice.1 = output_r;
@@ -129,6 +122,18 @@ impl Sampler {
                         break;
                     }
                 }
+            }
+        }
+    }
+    
+    pub fn toggle_play_dir(&mut self, index: usize) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            match instance.play_dir {
+                PlayDirection::Forward => instance.play_dir = PlayDirection::Backward,
+                PlayDirection::Backward => instance.play_dir = PlayDirection::Forward,
+            }
+            for voice in instance.voices.iter_mut() {
+                voice.set_play_direction(instance.play_dir.clone());
             }
         }
     }
@@ -201,6 +206,7 @@ impl Sampler {
 
     pub fn set_global_pitch(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
+            instance.pitch = value;
             for voice in instance.voices.iter_mut() {
                 voice.set_global_pitch(value);
             }
@@ -232,7 +238,6 @@ impl Sampler {
 
 struct Instance {
     buffer: Vec<f32>,
-    #[cfg(feature = "draw_data")]
     buffer_to_draw: BufferToDraw,
     write_index: usize,
     is_recording: bool,
@@ -241,10 +246,13 @@ struct Instance {
     is_hold: bool,
     loop_area: (f32, f32),
     gain: f32,
+    play_speed: f32,
+    pitch: f32,
+    play_dir: PlayDirection,
+    grain_dir: PlayDirection,
 }
 
 impl Instance {
-    #[cfg(feature = "draw_data")]
     pub fn new(sample_rate: f32) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
         Self {
@@ -263,38 +271,21 @@ impl Instance {
             is_hold: false,
             loop_area: (0.0, 1.0),
             gain: 0.5,
-        }
-    }
-
-    #[cfg(not(feature = "draw_data"))]
-    pub fn new(sample_rate: f32) -> Self {
-        let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
-        Self {
-            buffer: vec![0.0; buffersize],
-            write_index: 0,
-            is_recording: false,
-            voices: {
-                let mut voices: Vec<Voice> = Vec::with_capacity(VOICE_NUM);
-                for _ in 0..VOICE_NUM {
-                    voices.push(Voice::new(sample_rate));
-                }
-                voices
-            },
-            voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
-            is_hold: false,
-            loop_area: (0.0, 1.0),
-            gain: 0.5,
+            play_speed: 1.0,
+            pitch: 1.0,
+            play_dir: PlayDirection::Forward,
+            grain_dir: PlayDirection::Forward,
         }
     }
 
     pub fn record(&mut self) {
         self.is_recording = true;
         self.write_index = 0;
-        #[cfg(feature = "draw_data")]
         self.buffer_to_draw.reset();
     }
 
     fn set_play_speed(&mut self, value: f32) {
+        self.play_speed = value;
         for voice in self.voices.iter_mut() {
             voice.set_play_speed(value);
         }
@@ -376,13 +367,11 @@ impl Instance {
         self.buffer[self.write_index] = sample;
         self.write_index = self.write_index + 1;
 
-        #[cfg(feature = "draw_data")]
         self.buffer_to_draw.update(sample);
 
         if self.write_index >= self.buffer.len() {
             self.write_index = 0;
             self.is_recording = false;
-            #[cfg(feature = "draw_data")]
             self.buffer_to_draw.reset();
         }
     }
@@ -421,7 +410,6 @@ impl Instance {
     }
 }
 
-#[cfg(feature = "draw_data")]
 struct BufferToDraw {
     buffer: Vec<f32>,
     samples_per_bar: usize,
@@ -430,7 +418,6 @@ struct BufferToDraw {
     sample_sum: f32,
 }
 
-#[cfg(feature = "draw_data")]
 impl BufferToDraw {
     fn new(bars: usize, original_size: usize) -> Self {
         Self {

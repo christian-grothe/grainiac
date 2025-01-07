@@ -4,7 +4,8 @@ pub const GRAIN_NUM: usize = 256;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
 #[allow(dead_code)]
-enum PlayDirection {
+#[derive(Clone)]
+pub enum PlayDirection {
     Forward,
     Backward,
 }
@@ -58,12 +59,16 @@ impl Voice {
             pitch: 1.0,
             global_pitch: 1.0,
             gain: 0.0,
-            spray: 0.1,
-            grain_length: 1.0,
+            spray: 0.0,
+            grain_length: 0.2,
             grain_data: Vec::with_capacity(GRAIN_NUM),
             spread: 0.5,
             pan: 0.0,
         }
+    }
+
+    pub fn set_play_direction(&mut self, play_direction: PlayDirection) {
+        self.play_dircetion = play_direction;
     }
 
     pub fn set_play_speed(&mut self, speed: f32) {
