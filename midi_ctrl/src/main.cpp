@@ -70,7 +70,7 @@ void loop() {
      usbMIDI.sendControlChange(reading.cc, reading.val, MIDI_CHANNEL);
     }
   }else{
-    Reading reading = btns[ch - 4].getReading(analogRead(input_b));
+    Reading reading = btns[ch - 4].getReading(analogRead(input_a));
     if(reading.isUpdated){
      usbMIDI.sendControlChange(reading.cc, reading.val, MIDI_CHANNEL);
     }
