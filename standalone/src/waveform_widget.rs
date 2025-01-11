@@ -4,7 +4,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    text::{Line, Text},
+    text::{Line, Span, Text},
     widgets::{Paragraph, Widget},
 };
 
@@ -51,7 +51,7 @@ impl Widget for Waveform {
                 (layout[1].top() + (y * layout[1].height as f32) as u16) - 1,
             )]
                 .set_symbol("O")
-                .set_style(Style::default().fg(Color::LightYellow));
+                .set_style(Style::default().fg(Color::Rgb(255, 255, 186)));
         });
 
         // draw loop length
@@ -65,7 +65,7 @@ impl Widget for Waveform {
                 layout[1].top() + index as u16,
             )]
                 .set_symbol(char_str.as_str())
-                .set_style(Style::default().fg(Color::Rgb(255,179,186)));
+                .set_style(Style::default().fg(Color::Rgb(255, 179, 186)));
 
             buf[(
                 (loop_length.clamp(loop_start + 1.0, self.draw_data.buffer.len() as f32) as u16
@@ -73,7 +73,7 @@ impl Widget for Waveform {
                 layout[1].top() + index as u16,
             )]
                 .set_symbol(char_str.as_str())
-                .set_style(Style::default().fg(Color::Rgb(186,255,201)));
+                .set_style(Style::default().fg(Color::Rgb(186, 255, 201)));
         }
 
         // draw infos
@@ -88,24 +88,37 @@ impl Widget for Waveform {
             PlayDirection::Forward => ">>",
             PlayDirection::Backward => "<<",
         };
-        let text = Text::from(Line::from(vec![
-            self.label.into(),
-            "   ".into(),
-            "Hold: ".into(),
-            is_hold.to_string().blue().bold(),
-            " | ".into(),
-            "Play Dir: ".into(),
-            play_dir.to_string().blue().bold(),
-            " | ".into(),
-            "Grain Dir: ".into(),
-            grain_dir.to_string().blue().bold(),
-            " | ".into(),
-            "Pitch: ".into(),
-            pitch.to_string().blue().bold(),
-            " | ".into(),
-            "Speed: ".into(),
-            play_speed.to_string().blue().bold(),
+
+        let spans = Text::from(Line::from(vec![
+            Span::styled(self.label, Style::default().bold()),
+            Span::styled("   ", Style::default().bold()),
+            Span::styled("Hold: ", Style::default().bold()),
+            Span::styled(
+                is_hold,
+                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
+            ),
+            Span::styled(" | ", Style::default().bold()),
+            Span::styled("Play Dir: ", Style::default().bold()),
+            Span::styled(
+                play_dir,
+                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
+            ),
+            Span::styled(" | ", Style::default().bold()),
+            Span::styled("Grain Dir: ", Style::default().bold()),
+            Span::styled(
+                grain_dir,
+                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
+            ),
+            Span::styled(" | ", Style::default().bold()),
+            Span::styled("Pitch: ", Style::default().bold()),
+            Span::styled(pitch, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
+            Span::styled(" | ", Style::default().bold()),
+            Span::styled("Speed: ", Style::default().bold()),
+            Span::styled(
+                play_speed,
+                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
+            ),
         ]));
-        Paragraph::new(text).render(layout[0], buf);
+        Paragraph::new(spans).render(layout[0], buf);
     }
 }

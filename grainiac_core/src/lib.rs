@@ -6,7 +6,7 @@ pub mod voice;
 
 const VOICE_NUM: usize = 16;
 pub const INSTANCE_NUM: usize = 4;
-pub const BAR_NUM: usize = 100;
+pub const BAR_NUM: usize = 128;
 
 #[derive(Clone)]
 pub struct DrawData {
