@@ -116,23 +116,23 @@ fn main() -> io::Result<()> {
         move |_, _, _| jack::Control::Continue,
     );
 
-    // let active_client = client.activate_async((), process).unwrap();
-    // active_client
-    //     .as_client()
-    //     .connect_ports_by_name("grainiac:output_l", "system:playback_1")
-    //     .unwrap();
-    // active_client
-    //     .as_client()
-    //     .connect_ports_by_name("grainiac:output_r", "system:playback_2")
-    //     .unwrap();
-    // active_client
-    //     .as_client()
-    //     .connect_ports_by_name("grainiac:input_l", "system:capture_1")
-    //     .unwrap();
-    // active_client
-    //     .as_client()
-    //     .connect_ports_by_name("grainiac:input_r", "system:capture_2")
-    //     .unwrap();
+    let active_client = client.activate_async((), process).unwrap();
+    active_client
+        .as_client()
+        .connect_ports_by_name("grainiac:output_l", "system:playback_1")
+        .unwrap();
+    active_client
+        .as_client()
+        .connect_ports_by_name("grainiac:output_r", "system:playback_2")
+        .unwrap();
+    active_client
+        .as_client()
+        .connect_ports_by_name("system:capture_1", "grainiac:input_l")
+        .unwrap();
+    active_client
+        .as_client()
+        .connect_ports_by_name("system:capture_1", "grainiac:input_r")
+        .unwrap();
 
     let mut state = state::State::new(out_buf);
     let mut terminal = ratatui::init();

@@ -21,6 +21,7 @@ Reading getReading(int analogIn)
         return Reading{true, 127,cc};
     } else if (isActive && newReading == 0){
         isActive = false;
+        return Reading{true, 0,cc};
     }
     return Reading{false, 0, cc};
 }
