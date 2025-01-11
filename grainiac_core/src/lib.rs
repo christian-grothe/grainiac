@@ -6,6 +6,7 @@ pub mod voice;
 
 const VOICE_NUM: usize = 16;
 pub const INSTANCE_NUM: usize = 4;
+pub const BAR_NUM: usize = 100;
 
 #[derive(Clone)]
 pub struct DrawData {
@@ -24,7 +25,7 @@ impl DrawData {
         Self {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             loop_area: (0.0, 1.0),
-            buffer: vec![0.0; 100],
+            buffer: vec![0.0; BAR_NUM],
             pitch: 1.0,
             play_speed: 1.0,
             play_dir: PlayDirection::Forward,
@@ -249,6 +250,7 @@ struct Instance {
     play_speed: f32,
     pitch: f32,
     play_dir: PlayDirection,
+    #[allow(dead_code)]
     grain_dir: PlayDirection,
 }
 
@@ -257,7 +259,7 @@ impl Instance {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
         Self {
             buffer: vec![0.0; buffersize],
-            buffer_to_draw: BufferToDraw::new(100, buffersize),
+            buffer_to_draw: BufferToDraw::new(BAR_NUM, buffersize),
             write_index: 0,
             is_recording: false,
             voices: {
