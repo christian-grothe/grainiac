@@ -116,7 +116,7 @@ fn main() -> io::Result<()> {
         move |_, _, _| jack::Control::Continue,
     );
 
-    let active_client = client.activate_async((), process).unwrap();
+    // let active_client = client.activate_async((), process).unwrap();
     // active_client
     //     .as_client()
     //     .connect_ports_by_name("grainiac:output_l", "system:playback_1")
