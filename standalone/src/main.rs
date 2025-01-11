@@ -117,14 +117,14 @@ fn main() -> io::Result<()> {
     );
 
     let active_client = client.activate_async((), process).unwrap();
-    active_client
-        .as_client()
-        .connect_ports_by_name("grainiac:output_l", "system:playback_1")
-        .unwrap();
-    active_client
-        .as_client()
-        .connect_ports_by_name("grainiac:output_r", "system:playback_2")
-        .unwrap();
+    // active_client
+    //     .as_client()
+    //     .connect_ports_by_name("grainiac:output_l", "system:playback_1")
+    //     .unwrap();
+    // active_client
+    //     .as_client()
+    //     .connect_ports_by_name("grainiac:output_r", "system:playback_2")
+    //     .unwrap();
     // active_client
     //     .as_client()
     //     .connect_ports_by_name("grainiac:input_l", "system:capture_1")
