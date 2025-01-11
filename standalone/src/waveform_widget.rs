@@ -65,7 +65,7 @@ impl Widget for Waveform {
                 layout[1].top() + index as u16,
             )]
                 .set_symbol(char_str.as_str())
-                .set_style(Style::default().fg(Color::LightGreen));
+                .set_style(Style::default().fg(Color::Rgb(200, 100, 100)));
 
             buf[(
                 (loop_length.clamp(loop_start + 1.0, self.draw_data.buffer.len() as f32) as u16
@@ -73,7 +73,7 @@ impl Widget for Waveform {
                 layout[1].top() + index as u16,
             )]
                 .set_symbol(char_str.as_str())
-                .set_style(Style::default().fg(Color::LightRed));
+                .set_style(Style::default().fg(Color::Rgb(100, 200, 100)));
         }
 
         // draw infos
