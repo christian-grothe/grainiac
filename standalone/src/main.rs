@@ -94,14 +94,14 @@ fn main() -> io::Result<()> {
                                 state.sampler.toggle_play_dir(0);
                             }
                         }
-                        // 30 => {
-                        //     if event.bytes[2] > 0 {
-                        //         state.sampler.record(3);
-                        //     }
-                        // }
+                        30 => {
+                            if event.bytes[2] > 0 {
+                                state.sampler.toggle_grain_dir(0);
+                            }
+                        }
                         _ => println!("{:?}", event.bytes),
                     },
-                    _ => {} // println!("{:?}", event.bytes),
+                    _ => println!("{:?}", event.bytes),
                 }
             }
 

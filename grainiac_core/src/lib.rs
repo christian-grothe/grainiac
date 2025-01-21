@@ -30,7 +30,7 @@ impl DrawData {
             play_speed: 1.0,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
-            is_hold:false,
+            is_hold: false,
         }
     }
 }
@@ -81,6 +81,7 @@ impl Sampler {
                 draw_data[i].pitch = instance.pitch;
                 draw_data[i].is_hold = instance.is_hold;
                 draw_data[i].play_dir = instance.play_dir.clone();
+                draw_data[i].grain_dir = instance.grain_dir.clone();
             }
             self.draw_data.publish();
             self.draw_data_update_count = 0;
@@ -126,7 +127,7 @@ impl Sampler {
             }
         }
     }
-    
+
     pub fn toggle_play_dir(&mut self, index: usize) {
         if let Some(instance) = self.instances.get_mut(index) {
             match instance.play_dir {
@@ -139,20 +140,24 @@ impl Sampler {
         }
     }
 
+    pub fn toggle_grain_dir(&mut self, index: usize) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            match instance.grain_dir {
+                PlayDirection::Forward => instance.grain_dir = PlayDirection::Backward,
+                PlayDirection::Backward => instance.grain_dir = PlayDirection::Forward,
+            }
+            for voice in instance.voices.iter_mut() {
+                voice.set_grain_direction(instance.grain_dir.clone());
+            }
+        }
+    }
+
     pub fn set_loop_start(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
             instance.set_loop_start(value);
         }
     }
 
-    #[allow(dead_code)]
-    pub fn set_loop_end(&mut self, index: usize, value: f32) {
-        if let Some(instance) = self.instances.get_mut(index) {
-            instance.set_loop_end(value);
-        }
-    }
-
-    #[allow(dead_code)]
     pub fn set_loop_length(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
             instance.set_loop_length(value);
@@ -250,13 +255,13 @@ struct Instance {
     play_speed: f32,
     pitch: f32,
     play_dir: PlayDirection,
-    #[allow(dead_code)]
     grain_dir: PlayDirection,
 }
 
 impl Instance {
     pub fn new(sample_rate: f32) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
+        let loop_area = (0.25, 0.5);
         Self {
             buffer: vec![0.0; buffersize],
             buffer_to_draw: BufferToDraw::new(BAR_NUM, buffersize),
@@ -265,13 +270,13 @@ impl Instance {
             voices: {
                 let mut voices: Vec<Voice> = Vec::with_capacity(VOICE_NUM);
                 for _ in 0..VOICE_NUM {
-                    voices.push(Voice::new(sample_rate));
+                    voices.push(Voice::new(sample_rate, loop_area.clone()));
                 }
                 voices
             },
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             is_hold: false,
-            loop_area: (0.0, 1.0),
+            loop_area,
             gain: 0.5,
             play_speed: 1.0,
             pitch: 1.0,
@@ -300,25 +305,11 @@ impl Instance {
         }
     }
 
-    #[allow(dead_code)]
-    fn set_loop_end(&mut self, value: f32) {
-        self.loop_area.1 = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_loop_end(value);
-        }
-    }
-
-    #[allow(dead_code)]
     fn set_loop_length(&mut self, value: f32) {
         self.loop_area.1 = value;
-        let mut end = self.loop_area.0 + value;
-
-        if end > 1.0 {
-            end = 1.0;
-        }
 
         for voice in self.voices.iter_mut() {
-            voice.set_loop_end(end);
+            voice.set_loop_length(value);
         }
     }
 

@@ -1,10 +1,10 @@
 # Grainiac
 
 ## Todo
-- [ ] Fixing LoopLength
+- [X] Fixing LoopLength
 - [ ] Autoconnect Mididevice
-- [ ] Midi Controller PCB
-- [ ] Grain Direction
+- [X] Midi Controller PCB
+- [X] Grain Direction
 - [ ] Reliable Port for Audio Interface
 - [ ] Test Raspberry Pi 3 & Tinker Board
 
@@ -20,5 +20,6 @@
 | Tactile Switch|       | 4 x 4    |       |
 | USB Audio     | 11    | 1        | 11    |
 | PSU           | 12.65 | 1        | 12.65 | 
+| PCB           |       |          |       |
 
 ***TOTAL: 246.37***

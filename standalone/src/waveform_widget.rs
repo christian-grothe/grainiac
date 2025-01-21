@@ -46,10 +46,7 @@ impl Widget for Waveform {
         self.draw_data.voice_data.iter().for_each(|data| {
             let y = (data.2 + 1.0) / 2.0;
             let x = (data.0 * self.draw_data.buffer.len() as f32) as u16 + layout[1].left();
-            buf[(
-                x,
-                (layout[1].top() + (y * layout[1].height as f32) as u16) - 1,
-            )]
+            buf[(x, (layout[1].top() + (y * 5.0) as u16))]
                 .set_symbol("O")
                 .set_style(Style::default().fg(Color::Rgb(255, 255, 186)));
         });

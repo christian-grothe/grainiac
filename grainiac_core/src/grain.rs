@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+use crate::voice::PlayDirection;
+
 #[derive(Default)]
 pub struct Grain {
     env: Envelope,
@@ -10,6 +12,7 @@ pub struct Grain {
     inc: f32,
     gain: f32,
     stereo_pos: f32,
+    grain_direction: PlayDirection,
 }
 
 impl Grain {
@@ -20,6 +23,7 @@ impl Grain {
         pitch: f32,
         buffer_size: usize,
         stereo_pos: f32,
+        grain_direction: PlayDirection,
     ) {
         self.active = true;
         self.pos = start_pos;
@@ -27,13 +31,25 @@ impl Grain {
         self.env.set_inc(1.0 / length as f32);
         self.inc = pitch / buffer_size as f32;
         self.stereo_pos = stereo_pos;
+        self.grain_direction = grain_direction;
     }
 
     pub fn update(&mut self, gain: f32) -> (f32, f32, f32) {
-        self.pos += self.inc;
+        match self.grain_direction {
+            PlayDirection::Forward => {
+                self.pos += self.inc;
 
-        if self.pos >= 1.0 {
-            self.pos = 0.0;
+                if self.pos >= 1.0 {
+                    self.pos = 0.0;
+                }
+            }
+            PlayDirection::Backward => {
+                self.pos -= self.inc;
+
+                if self.pos <= 0.0 {
+                    self.pos = 0.99;
+                }
+            }
         }
 
         self.gain = self.env.next_sample() * gain;

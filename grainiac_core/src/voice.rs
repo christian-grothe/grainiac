@@ -3,11 +3,16 @@ use super::grain::Grain;
 pub const GRAIN_NUM: usize = 256;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub enum PlayDirection {
     Forward,
     Backward,
+}
+
+impl Default for PlayDirection {
+    fn default() -> Self {
+        PlayDirection::Forward
+    }
 }
 
 pub struct Voice {
@@ -15,10 +20,11 @@ pub struct Voice {
     pub is_playing: bool,
     pub midi_note: usize,
     pub loop_start: f32,
-    pub loop_end: f32,
+    pub loop_length: f32,
     grains: Vec<Grain>,
     grain_trigger: Trigger,
     play_dircetion: PlayDirection,
+    grain_dircetion: PlayDirection,
     buffersize: usize,
     play_pos: f32,
     inc: f32,
@@ -34,7 +40,7 @@ pub struct Voice {
 }
 
 impl Voice {
-    pub fn new(sample_rate: f32) -> Self {
+    pub fn new(sample_rate: f32, loop_area: (f32, f32)) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
         let inc = 0.25 / buffersize as f32;
         Self {
@@ -47,28 +53,33 @@ impl Voice {
             },
             grain_trigger: Trigger::new(48000.0, 15.0),
             play_dircetion: PlayDirection::Forward,
+            grain_dircetion: PlayDirection::Forward,
             env: Envelope::new(sample_rate),
             is_playing: false,
             midi_note: 0,
             buffersize,
             play_pos: 0.25,
-            loop_start: 0.25,
-            loop_end: 0.75,
+            loop_start: loop_area.0,
+            loop_length: loop_area.1,
             inc,
             sample_rate,
             pitch: 1.0,
             global_pitch: 1.0,
             gain: 0.0,
-            spray: 0.0,
             grain_length: 0.2,
             grain_data: Vec::with_capacity(GRAIN_NUM),
             spread: 0.5,
+            spray: 0.0,
             pan: 0.0,
         }
     }
 
     pub fn set_play_direction(&mut self, play_direction: PlayDirection) {
         self.play_dircetion = play_direction;
+    }
+
+    pub fn set_grain_direction(&mut self, grain_direction: PlayDirection) {
+        self.grain_dircetion = grain_direction;
     }
 
     pub fn set_play_speed(&mut self, speed: f32) {
@@ -79,8 +90,8 @@ impl Voice {
         self.loop_start = loop_start;
     }
 
-    pub fn set_loop_end(&mut self, loop_end: f32) {
-        self.loop_end = loop_end;
+    pub fn set_loop_length(&mut self, loop_length: f32) {
+        self.loop_length = loop_length;
     }
 
     pub fn set_density(&mut self, density: f32) {
@@ -132,17 +143,19 @@ impl Voice {
     }
 
     pub fn render(&mut self) -> &Vec<(f32, f32, f32)> {
+        let loop_end = (self.loop_start + self.loop_length).clamp(0.0, 1.0);
+
         match self.play_dircetion {
             PlayDirection::Forward => {
                 self.play_pos += self.inc;
-                if self.play_pos > self.loop_end {
+                if self.play_pos > loop_end || self.play_pos < self.loop_start {
                     self.play_pos = self.loop_start;
                 }
             }
             PlayDirection::Backward => {
                 self.play_pos -= self.inc;
                 if self.play_pos < self.loop_start || self.play_pos <= 0.0 {
-                    self.play_pos = self.loop_end;
+                    self.play_pos = loop_end;
                 }
             }
         }
@@ -165,6 +178,7 @@ impl Voice {
                         self.pitch * self.global_pitch,
                         self.buffersize,
                         stereo_pos.clamp(-1.0, 1.0),
+                        self.grain_dircetion.clone(),
                     );
                     break;
                 }
@@ -242,13 +256,11 @@ pub enum EnvelopeState {
     Off,
 }
 
-#[allow(dead_code)]
 pub struct Envelope {
     inc_attack: f32,
     inc_release: f32,
     gain: f32,
     state: EnvelopeState,
-    sample_rate: f32,
 }
 
 impl Envelope {
@@ -258,7 +270,6 @@ impl Envelope {
             inc_release: 1.0 / (sample_rate),
             gain: 0.0,
             state: EnvelopeState::Off,
-            sample_rate,
         }
     }
 
