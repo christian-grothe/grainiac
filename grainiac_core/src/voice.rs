@@ -42,7 +42,7 @@ pub struct Voice {
 impl Voice {
     pub fn new(sample_rate: f32, loop_area: (f32, f32)) -> Self {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
-        let inc = 0.25 / buffersize as f32;
+        let inc = 1.0 / buffersize as f32;
         Self {
             grains: {
                 let mut grains: Vec<Grain> = Vec::with_capacity(GRAIN_NUM);
@@ -51,7 +51,7 @@ impl Voice {
                 }
                 grains
             },
-            grain_trigger: Trigger::new(48000.0, 15.0),
+            grain_trigger: Trigger::new(48000.0, 10.0),
             play_dircetion: PlayDirection::Forward,
             grain_dircetion: PlayDirection::Forward,
             env: Envelope::new(sample_rate),
@@ -66,9 +66,9 @@ impl Voice {
             pitch: 1.0,
             global_pitch: 1.0,
             gain: 0.0,
-            grain_length: 0.2,
+            grain_length: 0.25,
             grain_data: Vec::with_capacity(GRAIN_NUM),
-            spread: 0.5,
+            spread: 1.0,
             spray: 0.0,
             pan: 0.0,
         }
