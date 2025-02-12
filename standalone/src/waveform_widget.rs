@@ -74,7 +74,7 @@ impl Widget for Waveform {
         }
 
         // draw infos
-        let pitch = format!("{:.2}", (12.0 * self.draw_data.pitch.log2()));
+        let pitch = format!("{:.2}",  self.draw_data.pitch);
         let play_speed = format!("{:.2}", self.draw_data.play_speed);
         let is_hold = if self.draw_data.is_hold { "[X]" } else { "[ ]" };
         let play_dir = match self.draw_data.play_dir {

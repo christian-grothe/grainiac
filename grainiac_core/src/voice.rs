@@ -30,7 +30,7 @@ pub struct Voice {
     inc: f32,
     sample_rate: f32,
     pitch: f32,
-    global_pitch: f32,
+    global_pitch: i8,
     gain: f32,
     spray: f32,
     spread: f32,
@@ -64,7 +64,7 @@ impl Voice {
             inc,
             sample_rate,
             pitch: 1.0,
-            global_pitch: 1.0,
+            global_pitch: 0,
             gain: 0.0,
             grain_length: 0.25,
             grain_data: Vec::with_capacity(GRAIN_NUM),
@@ -122,7 +122,7 @@ impl Voice {
         self.env.inc_release = 1.0 / (self.sample_rate * release);
     }
 
-    pub fn set_global_pitch(&mut self, global_pitch: f32) {
+    pub fn set_global_pitch(&mut self, global_pitch: i8) {
         self.global_pitch = global_pitch;
     }
 
@@ -170,12 +170,14 @@ impl Voice {
                     pos = pos - 1.0;
                 }
 
+                let main_pitch = 2.0f32.powf(self.global_pitch as f32 / 12.0);
+
                 if !grain.active {
                     let stereo_pos = self.pan + self.spread * ((rand::random::<f32>() * 2.0) - 1.0);
                     grain.activate(
                         (self.sample_rate * self.grain_length) as usize,
                         pos,
-                        self.pitch * self.global_pitch,
+                        self.pitch * main_pitch,
                         self.buffersize,
                         stereo_pos.clamp(-1.0, 1.0),
                         self.grain_dircetion.clone(),

@@ -1,41 +1,18 @@
 #include <Arduino.h>
 #include "components.h"
-
-#define MIDI_CHANNEL 1
+#include "instance.h"
 
 const int s0 = 2;
 const int s1 = 3;
 const int s2 = 4;
 const int CHANNELS = 8;
-const int input_a = A0;
-const int input_b = A1;
+const int INSTANCES = 4;
 
-const int POT_NUM = 4;
-Pot pots[POT_NUM]={
-  Pot(23),
-  Pot(24),
-  Pot(25),
-  Pot(26),
-};
-
-const int BTN_NUM = 4;
-Btn btns[POT_NUM]={
-  Btn(27),
-  Btn(28),
-  Btn(29),
-  Btn(30),
-};
-
-const int KEY_NUM = 8;
-Btn keys[KEY_NUM]={
-  Btn(60),
-  Btn(61),
-  Btn(62),
-  Btn(63),
-  Btn(64),
-  Btn(65),
-  Btn(66),
-  Btn(67),
+Instance instances[INSTANCES] = {
+  Instance{1, A0, A1},
+  Instance{2, A2, A3},
+  Instance{3, A4, A5},
+  Instance{4, A6, A7},
 };
 
 void setup() {
@@ -44,9 +21,12 @@ void setup() {
   pinMode(s0, OUTPUT);
   pinMode(s1, OUTPUT);
   pinMode(s2, OUTPUT);
-  pinMode(input_a, INPUT_PULLDOWN);
-  pinMode(input_b, INPUT_PULLDOWN);
-  analogReadAveraging(32);
+
+  for(int i = 0; i < INSTANCES; i++){
+    pinMode(instances[i].muxA, INPUT);
+    pinMode(instances[i].muxB, INPUT);
+  }
+
 }
 
 void loop() {
@@ -56,27 +36,38 @@ void loop() {
     digitalWrite(s1, (ch >> 1) & 0x01);
     digitalWrite(s2, (ch >> 2) & 0x01);
 
-    //Serial.print(analogRead(input));
+    //Serial.print(analogRead(input_a));
     //Serial.print(" ");
+    //Serial.print(analogRead(input_b));
+    //Serial.print(" ");
+    //delay(100);
 
-    Reading reading = keys[ch].getReading(analogRead(input_b));
-    if(reading.isUpdated){
-      usbMIDI.sendNoteOn(reading.cc, reading.val, MIDI_CHANNEL);
+    for(int i = 0; i < INSTANCES; i++){
+      Instance &instance = instances[i];
+
+      Reading reading = instance.pots_a[ch].getReading(analogRead(instance.muxA));
+      if(reading.isUpdated){
+        usbMIDI.sendControlChange(reading.cc, reading.val, instance.midichannel);
+      }
+
+      if(ch < 4){
+        Reading reading = instance.pots_b[ch].getReading(analogRead(instance.muxB));
+
+        if(reading.isUpdated){
+         usbMIDI.sendControlChange(reading.cc, reading.val, instance.midichannel);
+        }
+      } else {
+        Reading reading = instance.btns[ch - 4].getReading(analogRead(instance.muxB));
+
+        if(reading.isUpdated){
+         usbMIDI.sendControlChange(reading.cc, reading.val, instance.midichannel);
+        }
+      }
+
     }
 
-  if(ch < POT_NUM){
-    Reading reading = pots[ch].getReading(analogRead(input_a));
-    if(reading.isUpdated){
-     usbMIDI.sendControlChange(reading.cc, reading.val, MIDI_CHANNEL);
-    }
-  }else{
-    Reading reading = btns[ch - 4].getReading(analogRead(input_a));
-    if(reading.isUpdated){
-     usbMIDI.sendControlChange(reading.cc, reading.val, MIDI_CHANNEL);
-    }
   }
 
-  }
   //Serial.println();
 } 
 

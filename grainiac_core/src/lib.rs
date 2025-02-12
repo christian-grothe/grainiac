@@ -13,7 +13,7 @@ pub struct DrawData {
     pub voice_data: Vec<(f32, f32, f32)>,
     pub loop_area: (f32, f32),
     pub buffer: Vec<f32>,
-    pub pitch: f32,
+    pub pitch: i8,
     pub play_speed: f32,
     pub play_dir: PlayDirection,
     pub grain_dir: PlayDirection,
@@ -26,7 +26,7 @@ impl DrawData {
             voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             loop_area: (0.0, 1.0),
             buffer: vec![0.0; BAR_NUM],
-            pitch: 1.0,
+            pitch: 1,
             play_speed: 1.0,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
@@ -210,7 +210,7 @@ impl Sampler {
         }
     }
 
-    pub fn set_global_pitch(&mut self, index: usize, value: f32) {
+    pub fn set_global_pitch(&mut self, index: usize, value: i8) {
         if let Some(instance) = self.instances.get_mut(index) {
             instance.pitch = value;
             for voice in instance.voices.iter_mut() {
@@ -253,7 +253,7 @@ struct Instance {
     loop_area: (f32, f32),
     gain: f32,
     play_speed: f32,
-    pitch: f32,
+    pitch: i8,
     play_dir: PlayDirection,
     grain_dir: PlayDirection,
 }
@@ -279,7 +279,7 @@ impl Instance {
             loop_area,
             gain: 0.5,
             play_speed: 1.0,
-            pitch: 1.0,
+            pitch: 0,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
         }
@@ -299,9 +299,9 @@ impl Instance {
     }
 
     fn set_loop_start(&mut self, value: f32) {
-        self.loop_area.0 = value;
+        self.loop_area.0 = value.clamp(0.0, 0.99);
         for voice in self.voices.iter_mut() {
-            voice.set_loop_start(value);
+            voice.set_loop_start(value.clamp(0.0, 0.99));
         }
     }
 

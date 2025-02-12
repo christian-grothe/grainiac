@@ -58,50 +58,20 @@ fn main() -> io::Result<()> {
             let input_r = state.input_r.as_slice(ps);
 
             let midi = state.midi_in.iter(ps);
+
             for event in midi {
-                match event.bytes[0] {
-                    144 => state.sampler.note_on(event.bytes[1] as usize),
-                    128 => state.sampler.note_off(event.bytes[1] as usize),
-                    176 => match event.bytes[1] {
-                        23 => {
-                            let value = event.bytes[2] as f32 / 127.0;
-                            state.sampler.set_loop_start(0, value);
-                        }
-                        24 => {
-                            let value = event.bytes[2] as f32 / 127.0;
-                            state.sampler.set_loop_length(0, value);
-                        }
-                        25 => {
-                            let value = event.bytes[2] as f32 / 127.0;
-                            state.sampler.set_global_pitch(0, value * 1.5 + 0.5);
-                        }
-                        26 => {
-                            let value = event.bytes[2] as f32 / 127.0;
-                            state.sampler.set_play_speed(0, value * 2.0);
-                        }
-                        27 => {
-                            if event.bytes[2] > 0 {
-                                state.sampler.record(0);
-                            }
-                        }
-                        28 => {
-                            if event.bytes[2] > 0 {
-                                state.sampler.toggle_hold(0);
-                            }
-                        }
-                        29 => {
-                            if event.bytes[2] > 0 {
-                                state.sampler.toggle_play_dir(0);
-                            }
-                        }
-                        30 => {
-                            if event.bytes[2] > 0 {
-                                state.sampler.toggle_grain_dir(0);
-                            }
-                        }
-                        _ => println!("{:?}", event.bytes),
-                    },
-                    _ => println!("{:?}", event.bytes),
+                //println!("{:?}", event.bytes);
+                let (message_type, midi_channel) = parse_status_byte(event.bytes[0]);
+                match message_type {
+                    9 => state.sampler.note_on(event.bytes[1] as usize),
+                    8 => state.sampler.note_off(event.bytes[1] as usize),
+                    11 => handle_midi_cc(
+                        event.bytes[1],
+                        event.bytes[2],
+                        midi_channel as usize,
+                        &mut state.sampler,
+                    ),
+                    _ => {} //println!("{:?}", event.bytes),
                 }
             }
 
@@ -158,4 +128,75 @@ fn main() -> io::Result<()> {
     ratatui::restore();
 
     Ok(())
+}
+
+fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler) {
+    let value = val as f32 / 126.0;
+
+    match cc {
+        1 => {
+            sampler.set_loop_start(instance, value);
+        }
+        2 => {
+            sampler.set_loop_length(instance, value);
+        }
+        3 => {
+            sampler.set_density(instance, value * 50.0);
+        }
+        4 => {
+            sampler.set_grain_length(instance, value);
+        }
+        5 => {
+            sampler.set_play_speed(instance, value * 2.0);
+        }
+        6 => {
+            sampler.set_spray(instance, value);
+        }
+        7 => {
+            sampler.set_pan(instance, (value * 2.0) - 1.0);
+        }
+        8 => {
+            sampler.set_spread(instance, value);
+        }
+        9 => {
+            sampler.set_attack(instance, value * 5.0);
+        }
+        10 => {
+            sampler.set_release(instance, value * 5.0);
+        }
+        11 => {
+            sampler.set_global_pitch(instance, (value * 24.0) as i8 - 12);
+        }
+        12 => {
+            sampler.set_gain(instance, value);
+        }
+        13 => {
+            if value > 0.0 {
+                sampler.record(instance);
+            }
+        }
+        14 => {
+            if value > 0.0 {
+                sampler.toggle_hold(instance);
+            }
+        }
+        15 => {
+            if value > 0.0 {
+                sampler.toggle_play_dir(instance);
+            }
+        }
+        16 => {
+            if value > 0.0 {
+                sampler.toggle_grain_dir(instance);
+            }
+        }
+        _ => {} //println!("{:?}", event.bytes),
+                //
+    }
+}
+
+fn parse_status_byte(status: u8) -> (u8, u8) {
+    let message_type = (status & 0xF0) >> 4; // Upper 4 bits
+    let channel = status & 0x0F; // Lower 4 bits
+    (message_type, channel)
 }
