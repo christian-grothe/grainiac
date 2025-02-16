@@ -106,7 +106,7 @@ fn main() -> io::Result<()> {
         .unwrap();
 
     let mut cmd = Command::new("bash");
-    cmd.arg("/home/christian/connect.sh");
+    cmd.arg("./connect.sh");
     cmd.output().expect("failed to execute command");
 
     let mut state = state::State::new(out_buf);
