@@ -1,3 +1,4 @@
+use std::process::Command;
 use std::{
     io::{self, stdout},
     time::{Duration, Instant},
@@ -103,6 +104,10 @@ fn main() -> io::Result<()> {
         .as_client()
         .connect_ports_by_name("system:capture_1", "grainiac:input_r")
         .unwrap();
+
+    let mut cmd = Command::new("bash");
+    cmd.arg("/home/christian/connect.sh");
+    cmd.output().expect("failed to execute command");
 
     let mut state = state::State::new(out_buf);
     let mut terminal = ratatui::init();
