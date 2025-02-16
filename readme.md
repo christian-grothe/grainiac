@@ -1,12 +1,14 @@
 # Grainiac
+Grainiac is a granular sampler that has a terminal user interface. The plugin project does not work at the moment because I am focussing on the standalone. For the standalone version I created a custom midi controller. 
+At some point I am planning on releasing this as a DIY package where the sampler can run on a raspberry pi running the terminal user interface on a small lcd screen.
 
 ## Todo
 - [X] Fixing LoopLength
-- [ ] Autoconnect Mididevice
+- [X] Autoconnect Mididevice
 - [X] Midi Controller PCB
 - [X] Grain Direction
-- [ ] Reliable Port for Audio Interface
-- [ ] Test Raspberry Pi 3 & Tinker Board
+- [X] Reliable Port for Audio Interface
+- [ ] Making the enclosure for the controller and raspberry pi
 
 
 ## BOM
