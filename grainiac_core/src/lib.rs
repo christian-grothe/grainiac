@@ -88,6 +88,8 @@ impl Sampler {
         }
     }
 
+    pub fn save_preset() {}
+
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
         let mut output_r = 0.0;

@@ -1,3 +1,9 @@
+use crossbeam::channel::{unbounded, Receiver};
+use serde::Deserialize;
+
+use std::env;
+use std::fs::File;
+use std::io::BufReader;
 use std::process::Command;
 use std::{
     io::{self, stdout},
@@ -15,7 +21,67 @@ mod state;
 mod ui;
 mod waveform_widget;
 
+#[derive(Deserialize, Debug, Clone)]
+struct Config {
+    presets: Vec<Preset>,
+    mapping: Mapping,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[allow(dead_code)]
+pub struct Preset {
+    gain: [f32; 4],
+    loop_start: [f32; 4],
+    loop_length: [f32; 4],
+    density: [f32; 4],
+    grain_length: [f32; 4],
+    play_speed: [f32; 4],
+    spray: [f32; 4],
+    pan: [f32; 4],
+    spread: [f32; 4],
+    attack: [f32; 4],
+    release: [f32; 4],
+    pitch: [i8; 4],
+    name: String,
+    char: char,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+struct Mapping {
+    loop_start: u8,
+    loop_length: u8,
+    density: u8,
+    grain_length: u8,
+    play_speed: u8,
+    spray: u8,
+    pan: u8,
+    spread: u8,
+    attack: u8,
+    release: u8,
+    pitch: u8,
+    gain: u8,
+    record: u8,
+    hold: u8,
+    play_dir: u8,
+    grain_dir: u8,
+}
+
+pub enum Msg {
+    ApplyPreset(Preset),
+    SavePreset(char),
+}
+
 fn main() -> io::Result<()> {
+    let (s, r) = unbounded();
+
+    #[allow(deprecated)]
+    let home_dir = env::home_dir().unwrap();
+    let config_file_path = home_dir.join(".config/grainiac/config.json");
+    let file = File::open(config_file_path).unwrap();
+    let reader = BufReader::new(file);
+
+    let config: Config = serde_json::from_reader(reader).expect("could not open json");
+
     let (client, _status) = Client::new("grainiac", ClientOptions::default()).unwrap();
 
     let out_port_l = client
@@ -32,25 +98,30 @@ fn main() -> io::Result<()> {
 
     let midi_in_port = client.register_port("midi_in", MidiIn::default()).unwrap();
 
-    let (sampler, out_buf) = Sampler::new(48000.0);
+    let sr = client.sample_rate() as f32;
+    let (sampler, out_buf) = Sampler::new(sr);
 
-    struct Ports {
+    struct State {
         input_l: Port<AudioIn>,
         input_r: Port<AudioIn>,
         output_l: Port<AudioOut>,
         output_r: Port<AudioOut>,
         midi_in: Port<MidiIn>,
         sampler: grainiac_core::Sampler,
+        receiver: Receiver<Msg>,
+        config: Config,
     }
 
     let process = jack::contrib::ClosureProcessHandler::with_state(
-        Ports {
+        State {
             input_l: input_port_l,
             input_r: input_port_r,
             output_l: out_port_l,
             output_r: out_port_r,
             midi_in: midi_in_port,
             sampler,
+            receiver: r,
+            config: config.clone(),
         },
         |state, _, ps| -> jack::Control {
             let output_l = state.output_l.as_mut_slice(ps);
@@ -60,8 +131,38 @@ fn main() -> io::Result<()> {
 
             let midi = state.midi_in.iter(ps);
 
+            if let Ok(msg) = state.receiver.try_recv() {
+                match msg {
+                    Msg::ApplyPreset(preset) => {
+                        for (i, v) in preset.gain.iter().enumerate() {
+                            state.sampler.set_gain(i, *v);
+                        }
+
+                        for (i, v) in preset.loop_start.iter().enumerate() {
+                            state.sampler.set_loop_start(i, *v);
+                        }
+
+                        for (i, v) in preset.loop_length.iter().enumerate() {
+                            state.sampler.set_loop_length(i, *v);
+                        }
+
+                        for (i, v) in preset.loop_length.iter().enumerate() {
+                            state.sampler.set_loop_length(i, *v);
+                        }
+
+                        for (i, v) in preset.pitch.iter().enumerate() {
+                            state.sampler.set_global_pitch(i, *v as i8);
+                        }
+
+                        for (i, v) in preset.play_speed.iter().enumerate() {
+                            state.sampler.set_play_speed(i, *v);
+                        }
+                    }
+                    Msg::SavePreset(char) => {}
+                }
+            }
+
             for event in midi {
-                //println!("{:?}", event.bytes);
                 let (message_type, midi_channel) = parse_status_byte(event.bytes[0]);
                 match message_type {
                     9 => state.sampler.note_on(event.bytes[1] as usize),
@@ -71,6 +172,7 @@ fn main() -> io::Result<()> {
                         event.bytes[2],
                         midi_channel as usize,
                         &mut state.sampler,
+                        &state.config.mapping,
                     ),
                     _ => {} //println!("{:?}", event.bytes),
                 }
@@ -91,25 +193,25 @@ fn main() -> io::Result<()> {
     active_client
         .as_client()
         .connect_ports_by_name("grainiac:output_l", "system:playback_1")
-        .unwrap();
+        .unwrap_or_default();
     active_client
         .as_client()
         .connect_ports_by_name("grainiac:output_r", "system:playback_2")
-        .unwrap();
+        .unwrap_or_default();
     active_client
         .as_client()
         .connect_ports_by_name("system:capture_1", "grainiac:input_l")
-        .unwrap();
+        .unwrap_or_default();
     active_client
         .as_client()
         .connect_ports_by_name("system:capture_1", "grainiac:input_r")
-        .unwrap();
+        .unwrap_or_default();
 
     let mut cmd = Command::new("bash");
     cmd.arg("./connect.sh");
     cmd.output().expect("failed to execute command");
 
-    let mut state = state::State::new(out_buf);
+    let mut state = state::State::new(out_buf, s.clone(), config.presets);
     let mut terminal = ratatui::init();
     let mut stdout = stdout();
 
@@ -135,62 +237,62 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler) {
+fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mapping: &Mapping) {
     let value = val as f32 / 126.0;
 
     match cc {
-        1 => {
+        x if x == mapping.loop_start => {
             sampler.set_loop_start(instance, value);
         }
-        2 => {
+        x if x == mapping.loop_length => {
             sampler.set_loop_length(instance, value);
         }
-        3 => {
+        x if x == mapping.density => {
             sampler.set_density(instance, value * 50.0);
         }
-        4 => {
+        x if x == mapping.grain_length => {
             sampler.set_grain_length(instance, value);
         }
-        5 => {
+        x if x == mapping.play_speed => {
             sampler.set_play_speed(instance, value * 2.0);
         }
-        6 => {
+        x if x == mapping.spray => {
             sampler.set_spray(instance, value);
         }
-        7 => {
+        x if x == mapping.pan => {
             sampler.set_pan(instance, (value * 2.0) - 1.0);
         }
-        8 => {
+        x if x == mapping.spread => {
             sampler.set_spread(instance, value);
         }
-        9 => {
+        x if x == mapping.attack => {
             sampler.set_attack(instance, value * 5.0);
         }
-        10 => {
+        x if x == mapping.release => {
             sampler.set_release(instance, value * 5.0);
         }
-        11 => {
+        x if x == mapping.pitch => {
             sampler.set_global_pitch(instance, (value * 24.0) as i8 - 12);
         }
-        12 => {
+        x if x == mapping.gain => {
             sampler.set_gain(instance, value);
         }
-        13 => {
+        x if x == mapping.record => {
             if value > 0.0 {
                 sampler.record(instance);
             }
         }
-        14 => {
+        x if x == mapping.hold => {
             if value > 0.0 {
                 sampler.toggle_hold(instance);
             }
         }
-        15 => {
+        x if x == mapping.play_dir => {
             if value > 0.0 {
                 sampler.toggle_play_dir(instance);
             }
         }
-        16 => {
+        x if x == mapping.grain_dir => {
             if value > 0.0 {
                 sampler.toggle_grain_dir(instance);
             }
