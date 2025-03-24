@@ -158,7 +158,7 @@ fn main() -> io::Result<()> {
                             state.sampler.set_play_speed(i, *v);
                         }
                     }
-                    Msg::SavePreset(char) => {}
+                    Msg::SavePreset(_char) => {}
                 }
             }
 
