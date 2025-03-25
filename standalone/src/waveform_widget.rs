@@ -54,8 +54,8 @@ impl Widget for Waveform {
         // draw loop length
         for (index, char) in STATE_10.iter().enumerate() {
             let char_str = char.to_string();
-            let loop_start = self.draw_data.loop_area.0 * self.draw_data.buffer.len() as f32;
-            let loop_length = (self.draw_data.loop_area.1 + self.draw_data.loop_area.0)
+            let loop_start = self.draw_data.state.loop_start * self.draw_data.buffer.len() as f32;
+            let loop_length = (self.draw_data.state.loop_length + self.draw_data.state.loop_start)
                 * self.draw_data.buffer.len() as f32;
             buf[(
                 loop_start as u16 + layout[1].left(),
@@ -74,14 +74,18 @@ impl Widget for Waveform {
         }
 
         // draw infos
-        let pitch = format!("{:.2}",  self.draw_data.pitch);
-        let play_speed = format!("{:.2}", self.draw_data.play_speed);
-        let is_hold = if self.draw_data.is_hold { "[X]" } else { "[ ]" };
-        let play_dir = match self.draw_data.play_dir {
+        let pitch = format!("{:.2}", self.draw_data.state.pitch);
+        let play_speed = format!("{:.2}", self.draw_data.state.play_speed);
+        let is_hold = if self.draw_data.state.is_hold {
+            "[X]"
+        } else {
+            "[ ]"
+        };
+        let play_dir = match self.draw_data.state.play_dir {
             PlayDirection::Forward => ">>",
             PlayDirection::Backward => "<<",
         };
-        let grain_dir = match self.draw_data.grain_dir {
+        let grain_dir = match self.draw_data.state.grain_dir {
             PlayDirection::Forward => ">>",
             PlayDirection::Backward => "<<",
         };
