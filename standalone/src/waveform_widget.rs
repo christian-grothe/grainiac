@@ -28,8 +28,28 @@ impl Widget for Waveform {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(1), Constraint::Length(6)])
+            .constraints(vec![Constraint::Length(3), Constraint::Length(6)])
             .split(area);
+
+        let param_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Length(1); 3])
+            .split(layout[0]);
+
+        let param_line_a = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Min(1)])
+            .split(param_layout[0]);
+
+        let param_line_b = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Length(14); 5])
+            .split(param_layout[1]);
+
+        let param_line_c = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Length(14); 5])
+            .split(param_layout[2]);
 
         // draw waveform
         for (x, sample) in self.draw_data.buffer.iter().enumerate() {
@@ -74,15 +94,18 @@ impl Widget for Waveform {
         }
 
         // draw infos
-        let pitch = format!("{:.2}", self.draw_data.state.pitch);
-        let play_speed = format!("{:.2}", self.draw_data.state.play_speed);
-        let gain = format!("{:.2}", self.draw_data.state.gain);
-
         let is_hold = if self.draw_data.state.is_hold {
             "[X]"
         } else {
             "[ ]"
         };
+
+        let is_rec = if self.draw_data.state.is_recording {
+            "[X]"
+        } else {
+            "[ ]"
+        };
+
         let play_dir = match self.draw_data.state.play_dir {
             PlayDirection::Forward => ">>",
             PlayDirection::Backward => "<<",
@@ -94,37 +117,70 @@ impl Widget for Waveform {
 
         let spans = Text::from(Line::from(vec![
             Span::styled(self.label, Style::default().bold()),
-            Span::styled("   ", Style::default().bold()),
+            // Span::styled("   ", Style::default().bold()),
+            Span::styled("  Rec: ", Style::default().bold()),
+            Span::styled(
+                is_rec,
+                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
+            ),
+            Span::styled("  | ", Style::default().bold()),
             Span::styled("Hold: ", Style::default().bold()),
             Span::styled(
                 is_hold,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled(" | ", Style::default().bold()),
-            Span::styled("Play Dir: ", Style::default().bold()),
+            Span::styled("  | ", Style::default().bold()),
+            Span::styled("Pl-Dir: ", Style::default().bold()),
             Span::styled(
                 play_dir,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled(" | ", Style::default().bold()),
-            Span::styled("Grain Dir: ", Style::default().bold()),
+            Span::styled("  | ", Style::default().bold()),
+            Span::styled("Gr-Dir: ", Style::default().bold()),
             Span::styled(
                 grain_dir,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled(" | ", Style::default().bold()),
-            Span::styled("Pitch: ", Style::default().bold()),
-            Span::styled(pitch, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
-            Span::styled(" | ", Style::default().bold()),
-            Span::styled("Speed: ", Style::default().bold()),
-            Span::styled(
-                play_speed,
-                Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
-            ),
-            Span::styled(" | ", Style::default().bold()),
-            Span::styled("Gain: ", Style::default().bold()),
-            Span::styled(gain, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
         ]));
-        Paragraph::new(spans).render(layout[0], buf);
+
+        Paragraph::new(spans).render(param_line_a[0], buf);
+
+        Span::from(format!("   den: {:.2} |", self.draw_data.state.density / 50.0))
+            .render(param_line_b[0], buf);
+        Span::from(format!(
+            "   len: {:.2} |",
+            self.draw_data.state.grain_length
+        ))
+        .render(param_line_c[0], buf);
+
+        Span::from(format!("  spd: {:.2} |", self.draw_data.state.play_speed))
+            .render(param_line_b[1], buf);
+        Span::from(format!("  spy: {:.2} |", self.draw_data.state.spray))
+            .render(param_line_c[1], buf);
+
+        Span::from(format!("  pan: {:.2} |", self.draw_data.state.pan))
+            .render(param_line_b[2], buf);
+        Span::from(format!("  spr: {:.2} |", self.draw_data.state.spread))
+            .render(param_line_c[2], buf);
+
+        Span::from(format!("  att: {:.2} |", self.draw_data.state.attack))
+            .render(param_line_b[3], buf);
+        Span::from(format!("  rel: {:.2} |", self.draw_data.state.release))
+            .render(param_line_c[3], buf);
+
+        Span::from(format!("  pch: {} ", self.draw_data.state.pitch)).render(param_line_b[4], buf);
+        Span::from(format!("  vol: {:.2} ", self.draw_data.state.gain))
+            .render(param_line_c[4], buf);
     }
 }
+
+// "density": 3,
+// "grain_length": 4,
+// "play_speed": 5,
+// "spray": 6,
+// "pan": 7,
+// "spread": 8,
+// "attack": 9,
+// "release": 10,
+// "pitch": 11,
+// "gain": 12,

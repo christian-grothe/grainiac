@@ -247,6 +247,7 @@ impl Sampler {
 
     pub fn set_attack(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
+            instance.state.attack = value;
             for voice in instance.voices.iter_mut() {
                 voice.set_attack(value);
             }
@@ -255,6 +256,7 @@ impl Sampler {
 
     pub fn set_release(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
+            instance.state.release = value;
             for voice in instance.voices.iter_mut() {
                 voice.set_release(value);
             }
