@@ -1,7 +1,7 @@
 use std::{
     env,
     fs::{self, File},
-    io::{self, BufReader, Write},
+    io::{self, BufReader},
     time::Duration,
 };
 
@@ -11,6 +11,7 @@ use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
 use crate::{Config, Msg, Preset};
 
+#[derive(PartialEq)]
 pub enum PresetMode {
     Save,
     Load,

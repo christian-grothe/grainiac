@@ -1,9 +1,13 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout},
+    text::Span,
     Frame,
 };
 
-use crate::{state::State, waveform_widget::Waveform};
+use crate::{
+    state::{PresetMode, State},
+    waveform_widget::Waveform,
+};
 
 pub fn draw(frame: &mut Frame, state: &mut State) {
     let out_buf = state.out_buf.read();
@@ -28,7 +32,7 @@ pub fn draw(frame: &mut Frame, state: &mut State) {
 
     let tracks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Length(10); 4])
+        .constraints(vec![Constraint::Length(10); 5])
         .split(frame.area());
 
     let track_a = Waveform::from("Track A", out_buf[0].clone());
@@ -40,4 +44,9 @@ pub fn draw(frame: &mut Frame, state: &mut State) {
     frame.render_widget(track_b, tracks[1]);
     frame.render_widget(track_c, tracks[2]);
     frame.render_widget(track_d, tracks[3]);
+
+    if state.preset_mode == PresetMode::Save {
+        let span = Span::from("Press a key to save a new preset");
+        frame.render_widget(span, tracks[4]);
+    }
 }

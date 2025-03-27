@@ -76,6 +76,8 @@ impl Widget for Waveform {
         // draw infos
         let pitch = format!("{:.2}", self.draw_data.state.pitch);
         let play_speed = format!("{:.2}", self.draw_data.state.play_speed);
+        let gain = format!("{:.2}", self.draw_data.state.gain);
+
         let is_hold = if self.draw_data.state.is_hold {
             "[X]"
         } else {
@@ -119,6 +121,9 @@ impl Widget for Waveform {
                 play_speed,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
+            Span::styled(" | ", Style::default().bold()),
+            Span::styled("Gain: ", Style::default().bold()),
+            Span::styled(gain, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
         ]));
         Paragraph::new(spans).render(layout[0], buf);
     }
