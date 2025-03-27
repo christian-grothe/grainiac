@@ -9,7 +9,7 @@ pub const INSTANCE_NUM: usize = 4;
 pub const BAR_NUM: usize = 100;
 
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct State {
     pub loop_start: f32,
     pub loop_length: f32,
@@ -52,7 +52,7 @@ impl State {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DrawData {
     pub voice_data: Vec<(f32, f32, f32)>,
     pub buffer: Vec<f32>,
@@ -155,6 +155,26 @@ impl Sampler {
                         break;
                     }
                 }
+            }
+        }
+    }
+
+    pub fn set_play_dir_from_preset(&mut self, index: usize, value: u8) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            if value == 0 {
+                instance.state.play_dir = PlayDirection::Forward;
+            } else {
+                instance.state.play_dir = PlayDirection::Backward;
+            }
+        }
+    }
+
+    pub fn set_grain_dir_from_preset(&mut self, index: usize, value: u8) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            if value == 0 {
+                instance.state.grain_dir = PlayDirection::Forward;
+            } else {
+                instance.state.grain_dir = PlayDirection::Backward;
             }
         }
     }

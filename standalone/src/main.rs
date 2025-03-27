@@ -1,5 +1,5 @@
 use crossbeam::channel::{unbounded, Receiver};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use std::env;
 use std::fs::File;
@@ -21,13 +21,13 @@ mod state;
 mod ui;
 mod waveform_widget;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 struct Config {
     presets: Vec<Preset>,
     mapping: Mapping,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 #[allow(dead_code)]
 pub struct Preset {
     gain: [f32; 4],
@@ -42,11 +42,13 @@ pub struct Preset {
     attack: [f32; 4],
     release: [f32; 4],
     pitch: [i8; 4],
+    play_dir: [u8; 4],
+    grain_dir: [u8; 4],
     name: String,
     char: char,
 }
 
-#[derive(Deserialize, Debug, Clone, Copy)]
+#[derive(Deserialize, Serialize, Debug, Clone, Copy)]
 struct Mapping {
     loop_start: u8,
     loop_length: u8,
@@ -150,12 +152,40 @@ fn main() -> io::Result<()> {
                             state.sampler.set_loop_length(i, *v);
                         }
 
-                        for (i, v) in preset.pitch.iter().enumerate() {
-                            state.sampler.set_global_pitch(i, *v as i8);
-                        }
-
                         for (i, v) in preset.play_speed.iter().enumerate() {
                             state.sampler.set_play_speed(i, *v);
+                        }
+
+                        for (i, v) in preset.spray.iter().enumerate() {
+                            state.sampler.set_spray(i, *v);
+                        }
+
+                        for (i, v) in preset.pan.iter().enumerate() {
+                            state.sampler.set_pan(i, *v);
+                        }
+
+                        for (i, v) in preset.spread.iter().enumerate() {
+                            state.sampler.set_spread(i, *v);
+                        }
+
+                        for (i, v) in preset.attack.iter().enumerate() {
+                            state.sampler.set_attack(i, *v);
+                        }
+
+                        for (i, v) in preset.release.iter().enumerate() {
+                            state.sampler.set_release(i, *v);
+                        }
+
+                        for (i, v) in preset.pitch.iter().enumerate() {
+                            state.sampler.set_global_pitch(i, *v);
+                        }
+
+                        for (i, v) in preset.play_dir.iter().enumerate() {
+                            state.sampler.set_play_dir_from_preset(i, *v);
+                        }
+
+                        for (i, v) in preset.grain_dir.iter().enumerate() {
+                            state.sampler.set_grain_dir_from_preset(i, *v);
                         }
                     }
                     Msg::SavePreset(_char) => {}

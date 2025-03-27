@@ -3,7 +3,7 @@ use super::grain::Grain;
 pub const GRAIN_NUM: usize = 256;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PlayDirection {
     Forward,
     Backward,

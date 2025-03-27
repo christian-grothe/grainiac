@@ -1,10 +1,15 @@
-use std::{io, time::Duration};
+use std::{
+    env,
+    fs::{self, File},
+    io::{self, BufReader, Write},
+    time::Duration,
+};
 
 use crossbeam::channel::Sender;
 use grainiac_core::{DrawData, Output};
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
-use crate::{Msg, Preset};
+use crate::{Config, Msg, Preset};
 
 pub enum PresetMode {
     Save,
@@ -46,7 +51,7 @@ impl State {
                                     self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
                                 }
                             }
-                            PresetMode::Save => self.s.send(Msg::SavePreset(c)).unwrap(),
+                            PresetMode::Save => self.save_preset(c),
                         },
                         _ => {}
                     }
@@ -55,5 +60,58 @@ impl State {
             }
         }
         Ok(())
+    }
+
+    fn save_preset(&mut self, char: char) {
+        let data = self.out_buf.read();
+        let mut new_preset = Preset::default();
+        for (i, track) in data.iter().enumerate() {
+            new_preset.gain[i] = track.state.gain;
+            new_preset.loop_start[i] = track.state.loop_start;
+            new_preset.loop_length[i] = track.state.loop_length;
+            new_preset.density[i] = track.state.density;
+            new_preset.grain_length[i] = track.state.grain_length;
+            new_preset.play_speed[i] = track.state.play_speed;
+            new_preset.spray[i] = track.state.spray;
+            new_preset.pan[i] = track.state.pan;
+            new_preset.spread[i] = track.state.spread;
+            new_preset.attack[i] = track.state.attack;
+            new_preset.release[i] = track.state.release;
+            new_preset.pitch[i] = track.state.pitch;
+            new_preset.play_dir[i] = match track.state.play_dir {
+                grainiac_core::voice::PlayDirection::Forward => 0,
+                grainiac_core::voice::PlayDirection::Backward => 1,
+            };
+            new_preset.grain_dir[i] = match track.state.grain_dir {
+                grainiac_core::voice::PlayDirection::Forward => 0,
+                grainiac_core::voice::PlayDirection::Backward => 1,
+            };
+            new_preset.name = format!("preset_{}", char);
+            new_preset.char = char;
+        }
+
+        if let Some(index) = self.presets.iter().position(|p| p.char == char) {
+            self.presets[index] = new_preset;
+        } else {
+            self.presets.push(new_preset);
+        }
+
+        #[allow(deprecated)]
+        let home_dir = env::home_dir().unwrap();
+        let config_file_path = home_dir.join(".config/grainiac/config.json");
+
+        let file = File::open(config_file_path.clone()).unwrap();
+        let reader = BufReader::new(file);
+
+        let mut config: Config = serde_json::from_reader(reader).expect("could not open json");
+
+        config.presets = self.presets.clone();
+
+        let json_string =
+            serde_json::to_string(&config).expect("could not transform preset to string");
+
+        fs::write(config_file_path, json_string).expect("Unable to write file");
+
+        self.preset_mode = PresetMode::Load;
     }
 }
