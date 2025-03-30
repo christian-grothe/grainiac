@@ -1,3 +1,4 @@
+use rtsan_standalone::nonblocking;
 pub use triple_buffer::{triple_buffer, Input, Output};
 use voice::{PlayDirection, Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
 
@@ -54,7 +55,7 @@ impl State {
 
 #[derive(Clone, Debug)]
 pub struct DrawData {
-    pub voice_data: Vec<(f32, f32, f32)>,
+    pub grain_data: Vec<Option<(f32, f32, f32)>>,
     pub buffer: Vec<f32>,
     pub state: State,
 }
@@ -62,7 +63,7 @@ pub struct DrawData {
 impl DrawData {
     pub fn new() -> Self {
         Self {
-            voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+            grain_data: vec![None; VOICE_NUM * GRAIN_NUM],
             buffer: vec![0.0; BAR_NUM],
             state: State::new(),
         }
@@ -107,9 +108,18 @@ impl Sampler {
         if self.draw_data_update_count >= self.sample_rate as usize / 33 {
             let draw_data = self.draw_data.input_buffer();
             for (i, instance) in self.instances.iter().enumerate() {
-                draw_data[i].voice_data.clear();
-                draw_data[i].voice_data.extend(instance.voice_data.clone());
-                draw_data[i].buffer = instance.buffer_to_draw.buffer.clone();
+                for (index, data) in instance.grain_data.iter().enumerate() {
+                    draw_data[i].grain_data[index] = Some(*data);
+                }
+
+                for index in instance.grain_data.len()..draw_data[i].grain_data.len() {
+                    draw_data[i].grain_data[index] = None;
+                }
+
+                for (index, data) in instance.buffer_to_draw.buffer.iter().enumerate() {
+                    draw_data[i].buffer[index] = *data;
+                }
+
                 draw_data[i].state = instance.state.clone();
             }
             self.draw_data.publish();
@@ -117,8 +127,7 @@ impl Sampler {
         }
     }
 
-    pub fn save_preset() {}
-
+    #[nonblocking]
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
         let mut output_r = 0.0;
@@ -300,7 +309,7 @@ struct Instance {
     buffer_to_draw: BufferToDraw,
     write_index: usize,
     voices: Vec<Voice>,
-    voice_data: Vec<(f32, f32, f32)>,
+    grain_data: Vec<(f32, f32, f32)>,
     state: State,
 }
 
@@ -319,7 +328,8 @@ impl Instance {
                 }
                 voices
             },
-            voice_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+            grain_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
+
             state: State::new(),
         }
     }
@@ -415,15 +425,15 @@ impl Instance {
             self.write(*input_sample);
         }
 
-        self.voice_data.clear();
+        self.grain_data.clear();
         for voice in self.voices.iter_mut() {
             if voice.midi_note != 0 {
-                self.voice_data.extend(voice.render());
+                self.grain_data.extend(voice.render());
             }
         }
 
         let mut output = (0.0, 0.0);
-        for (pos, gain, stereo_pos) in self.voice_data.iter() {
+        for (pos, gain, stereo_pos) in self.grain_data.iter() {
             let play_index_int = (pos * self.buffer.len() as f32) as usize;
             let next_index = (play_index_int + 1) % self.buffer.len();
             let frac = pos * self.buffer.len() as f32 - play_index_int as f32;

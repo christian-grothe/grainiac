@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use crate::voice::PlayDirection;
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub struct Grain {
     env: Envelope,
     pub active: bool,
@@ -71,7 +71,7 @@ impl Grain {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 struct Envelope {
     inc: f64,
     phase: f64,

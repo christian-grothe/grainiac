@@ -3,7 +3,7 @@ use super::grain::Grain;
 pub const GRAIN_NUM: usize = 256;
 pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum PlayDirection {
     Forward,
     Backward,
@@ -21,7 +21,7 @@ pub struct Voice {
     pub midi_note: usize,
     pub loop_start: f32,
     pub loop_length: f32,
-    grains: Vec<Grain>,
+    grains: [Grain; GRAIN_NUM],
     grain_trigger: Trigger,
     play_dircetion: PlayDirection,
     grain_dircetion: PlayDirection,
@@ -44,13 +44,7 @@ impl Voice {
         let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
         let inc = 1.0 / buffersize as f32;
         Self {
-            grains: {
-                let mut grains: Vec<Grain> = Vec::with_capacity(GRAIN_NUM);
-                for _ in 0..GRAIN_NUM {
-                    grains.push(Grain::default());
-                }
-                grains
-            },
+            grains: [Grain::default(); GRAIN_NUM],
             grain_trigger: Trigger::new(48000.0, 10.0),
             play_dircetion: PlayDirection::Forward,
             grain_dircetion: PlayDirection::Forward,
@@ -67,7 +61,7 @@ impl Voice {
             global_pitch: 0,
             gain: 0.0,
             grain_length: 0.25,
-            grain_data: Vec::with_capacity(GRAIN_NUM),
+            grain_data: vec![(0.0, 0.0, 0.0); GRAIN_NUM],
             spread: 1.0,
             spray: 0.0,
             pan: 0.0,
@@ -142,7 +136,7 @@ impl Voice {
         self.env.state == EnvelopeState::Release
     }
 
-    pub fn render(&mut self) -> &Vec<(f32, f32, f32)> {
+    pub fn render(&mut self) -> &[(f32, f32, f32)] {
         let loop_end = (self.loop_start + self.loop_length).clamp(0.0, 1.0);
 
         match self.play_dircetion {
@@ -162,7 +156,7 @@ impl Voice {
 
         if self.grain_trigger.update() {
             for grain in self.grains.iter_mut() {
-                let mut pos = self.play_pos + self.spray * ((rand::random::<f32>() * 0.5) - 0.25);
+                let mut pos = self.play_pos + self.spray * ((fastrand::f32() * 0.5) - 0.25);
 
                 if pos < 0.0 {
                     pos = 1.0 + pos;
@@ -173,7 +167,7 @@ impl Voice {
                 let main_pitch = 2.0f32.powf(self.global_pitch as f32 / 12.0);
 
                 if !grain.active {
-                    let stereo_pos = self.pan + self.spread * ((rand::random::<f32>() * 2.0) - 1.0);
+                    let stereo_pos = self.pan + self.spread * ((fastrand::f32() * 2.0) - 1.0);
                     grain.activate(
                         (self.sample_rate * self.grain_length) as usize,
                         pos,
