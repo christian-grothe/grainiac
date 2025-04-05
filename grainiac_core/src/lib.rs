@@ -108,12 +108,12 @@ impl Sampler {
         if self.draw_data_update_count >= self.sample_rate as usize / 33 {
             let draw_data = self.draw_data.input_buffer();
             for (i, instance) in self.instances.iter().enumerate() {
+                draw_data[i].grain_data.fill(None);
                 for (index, data) in instance.grain_data.iter().enumerate() {
+                    if instance.state.gain == 0.0 {
+                        break;
+                    }
                     draw_data[i].grain_data[index] = Some(*data);
-                }
-
-                for index in instance.grain_data.len()..draw_data[i].grain_data.len() {
-                    draw_data[i].grain_data[index] = None;
                 }
 
                 for (index, data) in instance.buffer_to_draw.buffer.iter().enumerate() {
@@ -289,6 +289,7 @@ impl Sampler {
 
     pub fn set_spread(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
+            instance.state.spread = value;
             for voice in instance.voices.iter_mut() {
                 voice.set_spread(value);
             }
@@ -297,6 +298,7 @@ impl Sampler {
 
     pub fn set_pan(&mut self, index: usize, value: f32) {
         if let Some(instance) = self.instances.get_mut(index) {
+            instance.state.pan = value;
             for voice in instance.voices.iter_mut() {
                 voice.set_pan(value);
             }

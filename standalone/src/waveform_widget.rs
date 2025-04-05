@@ -43,12 +43,12 @@ impl Widget for Waveform {
 
         let param_line_b = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Length(14); 5])
+            .constraints(vec![Constraint::Length(16); 5])
             .split(param_layout[1]);
 
         let param_line_c = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Length(14); 5])
+            .constraints(vec![Constraint::Length(16); 5])
             .split(param_layout[2]);
 
         // draw waveform
@@ -147,30 +147,39 @@ impl Widget for Waveform {
 
         Paragraph::new(spans).render(param_line_a[0], buf);
 
+        if self.draw_data.state.density < 10.0 {
+            Span::from(format!("   den: {:.2}  |", self.draw_data.state.density))
+                .render(param_line_b[0], buf);
+        } else {
+            Span::from(format!("   den: {:.2} |", self.draw_data.state.density))
+                .render(param_line_b[0], buf);
+        }
         Span::from(format!(
-            "   den: {:.2} |",
-            self.draw_data.state.density / 50.0
-        ))
-        .render(param_line_b[0], buf);
-        Span::from(format!(
-            "   len: {:.2} |",
+            "   len: {:.2}  |",
             self.draw_data.state.grain_length
         ))
         .render(param_line_c[0], buf);
 
-        Span::from(format!("  spd: {:.2} |", self.draw_data.state.play_speed))
+        Span::from(format!("  spd: {:.2}  |", self.draw_data.state.play_speed))
             .render(param_line_b[1], buf);
-        Span::from(format!("  spy: {:.2} |", self.draw_data.state.spray))
+        Span::from(format!("  spy: {:.2}  |", self.draw_data.state.spray))
             .render(param_line_c[1], buf);
 
-        Span::from(format!("  pan: {:.2} |", self.draw_data.state.pan))
-            .render(param_line_b[2], buf);
-        Span::from(format!("  spr: {:.2} |", self.draw_data.state.spread))
+        if self.draw_data.state.pan > 0.0 {
+            Span::from(format!("  pan: R{:.2}  |", self.draw_data.state.pan.abs()))
+                .render(param_line_b[2], buf);
+        } else if self.draw_data.state.pan < 0.0 {
+            Span::from(format!("  pan: L{:.2}  |", self.draw_data.state.pan.abs()))
+                .render(param_line_b[2], buf);
+        } else {
+            Span::from(format!("  pan: -C-    |")).render(param_line_b[2], buf);
+        }
+        Span::from(format!("  spr: {:.2}   |", self.draw_data.state.spread))
             .render(param_line_c[2], buf);
 
-        Span::from(format!("  att: {:.2} |", self.draw_data.state.attack))
+        Span::from(format!("  att: {:.2}  |", self.draw_data.state.attack))
             .render(param_line_b[3], buf);
-        Span::from(format!("  rel: {:.2} |", self.draw_data.state.release))
+        Span::from(format!("  rel: {:.2}  |", self.draw_data.state.release))
             .render(param_line_c[3], buf);
 
         Span::from(format!("  pch: {} ", self.draw_data.state.pitch)).render(param_line_b[4], buf);
