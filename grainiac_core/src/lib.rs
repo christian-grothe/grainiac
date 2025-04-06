@@ -127,6 +127,15 @@ impl Sampler {
         }
     }
 
+    pub fn get_bufs(&mut self) -> Vec<&Vec<f32>> {
+        let mut comb = vec![];
+        for instance in self.instances.iter() {
+            comb.push(&instance.buffer)
+        }
+
+        comb
+    }
+
     #[nonblocking]
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
