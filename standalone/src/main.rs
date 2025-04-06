@@ -70,7 +70,7 @@ struct Mapping {
 
 pub enum Msg {
     ApplyPreset(Preset),
-    SavePreset(char),
+    SaveAudio,
 }
 
 fn main() -> io::Result<()> {
@@ -188,7 +188,22 @@ fn main() -> io::Result<()> {
                             state.sampler.set_grain_dir_from_preset(i, *v);
                         }
                     }
-                    Msg::SavePreset(_char) => {}
+                    Msg::SaveAudio => {
+                        let spec = hound::WavSpec {
+                            channels: 1,
+                            sample_rate: 48000,
+                            bits_per_sample: 16,
+                            sample_format: hound::SampleFormat::Int,
+                        };
+                        let mut writer = hound::WavWriter::create("test.wav", spec).unwrap();
+                        let bufs = state.sampler.get_bufs();
+                        let amplitude = i16::MAX as f32;
+                        for buf in bufs.iter() {
+                            for sample in buf.iter() {
+                                writer.write_sample((sample * amplitude) as i16).unwrap();
+                            }
+                        }
+                    }
                 }
             }
 
