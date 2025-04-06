@@ -1,7 +1,7 @@
 use super::grain::Grain;
 
 pub const GRAIN_NUM: usize = 256;
-pub const BUFFER_SIZE_SECONDS: f32 = 5.0;
+pub const BUFFER_SIZE_SECONDS: f32 = 10.0;
 
 #[derive(Clone, Debug, Copy)]
 pub enum PlayDirection {
