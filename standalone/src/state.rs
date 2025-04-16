@@ -49,6 +49,9 @@ impl State {
                         KeyCode::Char('x') => {
                             self.s.send(Msg::SaveAudio).unwrap();
                         }
+                        KeyCode::Char('y') => {
+                            self.s.send(Msg::LoadAudio).unwrap();
+                        }
                         KeyCode::Char(c) => match self.preset_mode {
                             PresetMode::Load => {
                                 if let Some(preset) = self.presets.iter().find(|p| p.char == c) {

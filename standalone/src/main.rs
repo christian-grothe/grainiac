@@ -71,6 +71,7 @@ struct Mapping {
 pub enum Msg {
     ApplyPreset(Preset),
     SaveAudio,
+    LoadAudio,
 }
 
 fn main() -> io::Result<()> {
@@ -192,17 +193,22 @@ fn main() -> io::Result<()> {
                         let spec = hound::WavSpec {
                             channels: 1,
                             sample_rate: 48000,
-                            bits_per_sample: 16,
-                            sample_format: hound::SampleFormat::Int,
+                            bits_per_sample: 32,
+                            sample_format: hound::SampleFormat::Float,
                         };
                         let mut writer = hound::WavWriter::create("test.wav", spec).unwrap();
                         let bufs = state.sampler.get_bufs();
-                        let amplitude = i16::MAX as f32;
                         for buf in bufs.iter() {
                             for sample in buf.iter() {
-                                writer.write_sample((sample * amplitude) as i16).unwrap();
+                                writer.write_sample(*sample).unwrap();
                             }
                         }
+                    }
+                    Msg::LoadAudio => {
+                        let mut reader = hound::WavReader::open("test.wav").unwrap();
+                        let samples: Vec<f32> =
+                            reader.samples::<f32>().map(|s| s.unwrap()).collect();
+                        state.sampler.load_bufs(samples);
                     }
                 }
             }
@@ -245,11 +251,11 @@ fn main() -> io::Result<()> {
         .unwrap_or_default();
     active_client
         .as_client()
-        .connect_ports_by_name("system:capture_1", "grainiac:input_l")
+        .connect_ports_by_name("system:capture_2", "grainiac:input_l")
         .unwrap_or_default();
     active_client
         .as_client()
-        .connect_ports_by_name("system:capture_1", "grainiac:input_r")
+        .connect_ports_by_name("system:capture_2", "grainiac:input_r")
         .unwrap_or_default();
 
     let mut cmd = Command::new("bash");

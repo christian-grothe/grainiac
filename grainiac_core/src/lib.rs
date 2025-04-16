@@ -136,6 +136,20 @@ impl Sampler {
         comb
     }
 
+    pub fn load_bufs(&mut self, bufs: Vec<f32>) {
+        let chunk_size = (BUFFER_SIZE_SECONDS * self.sample_rate) as usize;
+        let chunks = bufs.chunks(chunk_size);
+
+        for (instance, chunk) in self.instances.iter_mut().zip(chunks) {
+            instance.buffer = chunk.to_vec();
+
+            instance.buffer_to_draw.reset();
+            for sample in instance.buffer.iter() {
+                instance.buffer_to_draw.update(*sample);
+            }
+        }
+    }
+
     #[nonblocking]
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
