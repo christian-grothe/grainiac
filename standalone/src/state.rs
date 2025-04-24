@@ -19,6 +19,7 @@ pub enum PresetMode {
 
 pub struct State {
     pub exiting: bool,
+    pub show_menu: bool,
     pub out_buf: Output<Vec<DrawData>>,
     pub preset_mode: PresetMode,
     pub presets: Vec<Preset>,
@@ -29,6 +30,7 @@ impl State {
     pub fn new(out_buf: Output<Vec<DrawData>>, s: Sender<Msg>, presets: Vec<Preset>) -> Self {
         Self {
             exiting: false,
+            show_menu: false,
             out_buf,
             preset_mode: PresetMode::Load,
             presets,
@@ -46,6 +48,7 @@ impl State {
                             PresetMode::Save => self.preset_mode = PresetMode::Load,
                             PresetMode::Load => self.preset_mode = PresetMode::Save,
                         },
+                        KeyCode::Char('n') => self.show_menu = !self.show_menu,
                         KeyCode::Char('x') => {
                             self.s.send(Msg::SaveAudio).unwrap();
                         }
