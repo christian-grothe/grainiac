@@ -1,11 +1,14 @@
 # Grainiac
-Grainiac is a granular sampler that has a terminal user interface. The plugin project does not work at the moment because I am focussing on the standalone. For the standalone version I created a custom midi controller. 
+
+Grainiac is a granular sampler that has a terminal user interface. The plugin project does not work at the moment because I am focussing on the standalone. For the standalone version I created a custom midi controller.
 At some point I am planning on releasing this as a DIY package where the sampler can run on a raspberry pi running the terminal user interface on a small lcd screen.
 Currently it just works on Linux as a Jack Client.
 
-[![Demo](https://img.youtube.com/vi/uADcnCzQX3A/0.jpg)](https://www.youtube.com/watch?v=uADcnCzQX3A)
+[![Demo#1](https://img.youtube.com/vi/uADcnCzQX3A/0.jpg)](https://www.youtube.com/watch?v=XzJnMVo1ZkM)
+[![Demo#2](https://img.youtube.com/vi/uADcnCzQX3A/0.jpg)](https://www.youtube.com/watch?v=uADcnCzQX3A)
 
 # Config
+
 You need to have a config.json file under _~/.config/grainiac/_ with the following schema:
 
 ```json
@@ -28,7 +31,7 @@ You need to have a config.json file under _~/.config/grainiac/_ with the followi
       "grain_dir": [0, 0, 1, 0],
       "name": "preset_1",
       "char": "1"
-    },
+    }
   ],
   "mapping": {
     "loop_start": 1,
@@ -58,6 +61,7 @@ the char field is the character that you press to load the preset.
 The mapping section is to map midi cc to certain parameters. Currently every track of the sampler is mapped to a unique midi channel. So with the JSON above loop_start is mapped to midi cc 1 and channel 1 is changing track A, channel 2 track B and so on.
 
 ## BOM
+
 This is the bill of material that I use for the midi controller and the raspberry pi.
 
 | Part           | Price | Quantity | Total |
