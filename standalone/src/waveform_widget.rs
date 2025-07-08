@@ -10,12 +10,12 @@ use ratatui::{
 
 mod brailles;
 
-pub struct Waveform {
+pub struct Track {
     label: String,
     draw_data: DrawData,
 }
 
-impl Waveform {
+impl Track {
     pub fn from(label: &str, draw_data: DrawData) -> Self {
         Self {
             label: label.to_string(),
@@ -24,7 +24,7 @@ impl Waveform {
     }
 }
 
-impl Widget for Waveform {
+impl Widget for Track {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Vertical)

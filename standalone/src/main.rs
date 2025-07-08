@@ -70,14 +70,13 @@ struct Mapping {
 
 pub enum Msg {
     ApplyPreset(Preset),
-    SaveAudio,
-    LoadAudio,
+    SaveAudio(char),
+    LoadAudio(char),
 }
 
 fn main() -> io::Result<()> {
     let (s, r) = unbounded();
 
-    #[allow(deprecated)]
     let home_dir = env::home_dir().unwrap();
     let config_file_path = home_dir.join(".config/grainiac/config.json");
     let file = File::open(config_file_path).unwrap();
@@ -189,14 +188,20 @@ fn main() -> io::Result<()> {
                             state.sampler.set_grain_dir_from_preset(i, *v);
                         }
                     }
-                    Msg::SaveAudio => {
+
+                    Msg::SaveAudio(index) => {
                         let spec = hound::WavSpec {
                             channels: 1,
                             sample_rate: 48000,
                             bits_per_sample: 32,
                             sample_format: hound::SampleFormat::Float,
                         };
-                        let mut writer = hound::WavWriter::create("test.wav", spec).unwrap();
+
+                        let home_dir = env::home_dir().unwrap();
+                        let path = home_dir.join(".local/share/grainiac/");
+                        let file_name = format!("grainiac_{}.wav", index);
+                        let full_path = path.join(file_name);
+                        let mut writer = hound::WavWriter::create(full_path, spec).unwrap();
                         let bufs = state.sampler.get_bufs();
                         for buf in bufs.iter() {
                             for sample in buf.iter() {
@@ -204,11 +209,17 @@ fn main() -> io::Result<()> {
                             }
                         }
                     }
-                    Msg::LoadAudio => {
-                        let mut reader = hound::WavReader::open("test.wav").unwrap();
-                        let samples: Vec<f32> =
-                            reader.samples::<f32>().map(|s| s.unwrap()).collect();
-                        state.sampler.load_bufs(samples);
+
+                    Msg::LoadAudio(index) => {
+                        let home_dir = env::home_dir().unwrap();
+                        let path = home_dir.join(".local/share/grainiac/");
+                        let file_name = format!("grainiac_{}.wav", index);
+                        let full_path = path.join(file_name);
+                        if let Ok(mut reader) = hound::WavReader::open(full_path) {
+                            let samples: Vec<f32> =
+                                reader.samples::<f32>().map(|s| s.unwrap()).collect();
+                            state.sampler.load_bufs(samples);
+                        };
                     }
                 }
             }

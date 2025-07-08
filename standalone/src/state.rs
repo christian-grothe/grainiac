@@ -12,16 +12,46 @@ use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crate::{Config, Msg, Preset};
 
 #[derive(PartialEq)]
-pub enum PresetMode {
-    Save,
-    Load,
+pub enum NumMode {
+    SavePreset,
+    LoadPreset,
+    SaveAudio,
+    LoadAudio,
+}
+
+impl NumMode {
+    fn next(&mut self) {
+        *self = match self {
+            NumMode::LoadPreset => NumMode::SavePreset,
+            NumMode::SavePreset => NumMode::LoadAudio,
+            NumMode::LoadAudio => NumMode::SaveAudio,
+            NumMode::SaveAudio => NumMode::LoadPreset,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+pub enum View {
+    Main,
+    Preset,
+    Audio,
+}
+
+impl View {
+    fn next(&mut self) {
+        *self = match self {
+            View::Main => View::Preset,
+            View::Preset => View::Audio,
+            View::Audio => View::Main,
+        }
+    }
 }
 
 pub struct State {
     pub exiting: bool,
-    pub show_menu: bool,
+    pub view: View,
     pub out_buf: Output<Vec<DrawData>>,
-    pub preset_mode: PresetMode,
+    pub num_mode: NumMode,
     pub presets: Vec<Preset>,
     pub s: Sender<Msg>,
 }
@@ -30,9 +60,9 @@ impl State {
     pub fn new(out_buf: Output<Vec<DrawData>>, s: Sender<Msg>, presets: Vec<Preset>) -> Self {
         Self {
             exiting: false,
-            show_menu: false,
+            view: View::Main,
             out_buf,
-            preset_mode: PresetMode::Load,
+            num_mode: NumMode::LoadPreset,
             presets,
             s,
         }
@@ -44,25 +74,24 @@ impl State {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     match key_event.code {
                         KeyCode::Esc => self.exiting = true,
-                        KeyCode::Char('m') => match self.preset_mode {
-                            PresetMode::Save => self.preset_mode = PresetMode::Load,
-                            PresetMode::Load => self.preset_mode = PresetMode::Save,
-                        },
-                        KeyCode::Char('n') => self.show_menu = !self.show_menu,
-                        KeyCode::Char('x') => {
-                            self.s.send(Msg::SaveAudio).unwrap();
-                        }
-                        KeyCode::Char('y') => {
-                            self.s.send(Msg::LoadAudio).unwrap();
-                        }
-                        KeyCode::Char(c) => match self.preset_mode {
-                            PresetMode::Load => {
-                                if let Some(preset) = self.presets.iter().find(|p| p.char == c) {
-                                    self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
+                        KeyCode::Char('m') => self.num_mode.next(),
+                        KeyCode::Char('n') => self.view.next(),
+                        KeyCode::Char(c) => {
+                            if c.is_ascii_digit() {
+                                match self.num_mode {
+                                    NumMode::LoadPreset => {
+                                        if let Some(preset) =
+                                            self.presets.iter().find(|p| p.char == c)
+                                        {
+                                            self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
+                                        }
+                                    }
+                                    NumMode::SavePreset => self.save_preset(c),
+                                    NumMode::LoadAudio => self.s.send(Msg::LoadAudio(c)).unwrap(),
+                                    NumMode::SaveAudio => self.s.send(Msg::SaveAudio(c)).unwrap(),
                                 }
                             }
-                            PresetMode::Save => self.save_preset(c),
-                        },
+                        }
                         _ => {}
                     }
                 }
@@ -106,7 +135,6 @@ impl State {
             self.presets.push(new_preset);
         }
 
-        #[allow(deprecated)]
         let home_dir = env::home_dir().unwrap();
         let config_file_path = home_dir.join(".config/grainiac/config.json");
 
@@ -122,6 +150,6 @@ impl State {
 
         fs::write(config_file_path, json_string).expect("Unable to write file");
 
-        self.preset_mode = PresetMode::Load;
+        self.num_mode = NumMode::LoadPreset;
     }
 }

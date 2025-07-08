@@ -9,26 +9,26 @@ Currently it just works on Linux as a Jack Client.
 
 # Config
 
-You need to have a config.json file under _~/.config/grainiac/_ with the following schema:
+You need to have a config.json file under ~/.config/grainiac/ with the following schema:
 
 ```json
 {
   "presets": [
     {
-      "gain": [0.37301588, 0.73015875, 0.16666667, 0.0],
-      "loop_start": [0.07936508, 0.24603175, 0.67460316, 0.071428575],
-      "loop_length": [0.08730159, 0.08730159, 0.20634921, 0.3809524],
-      "density": [15.873016, 28.968254, 31.349205, 0.5],
-      "grain_length": [0.2777778, 0.11111111, 0.11904762, 0.48412699],
-      "play_speed": [0.11111111, 0.33333334, 0.11111111, 1.0],
-      "spray": [0.071428575, 0.071428575, 0.1, 0.1],
-      "pan": [-0.079365075, 0.03174603, 0.0, 0.0],
-      "spread": [0.6984127, 1.0, 1.0, 1.0],
-      "attack": [5.0396824, 0.515873, 0.43650794, 0.25],
-      "release": [5.0396824, 5.0396824, 4.7619047, 0.25],
-      "pitch": [0, -12, 0, 0],
+      "gain": [0.5, 0.5, 0.5, 0.5],
+      "loop_start": [0.25, 0.25, 0.25, 0.25],
+      "loop_length": [0.5, 0.5, 0.5, 0.5],
+      "density": [0.5, 0.5, 0.5, 0.5],
+      "grain_length": [0.5, 0.5, 0.5, 0.5],
+      "play_speed": [1.0, 1.0, 1.0, 1.0],
+      "spray": [0.1, 0.1, 0.1, 0.1],
+      "pan": [0.0, 0.0, 0.0, 0.0],
+      "spread": [1.0, 1.0, 1.0, 1.0],
+      "attack": [0.25, 0.25, 0.25, 0.25],
+      "release": [0.25, 0.25, 0.25, 0.25],
+      "pitch": [1, 1, 1, 1],
       "play_dir": [0, 0, 0, 0],
-      "grain_dir": [0, 0, 1, 0],
+      "grain_dir": [0, 0, 0, 0],
       "name": "preset_1",
       "char": "1"
     }
@@ -60,7 +60,18 @@ the char field is the character that you press to load the preset.
 
 The mapping section is to map midi cc to certain parameters. Currently every track of the sampler is mapped to a unique midi channel. So with the JSON above loop_start is mapped to midi cc 1 and channel 1 is changing track A, channel 2 track B and so on.
 
-## BOM
+In order to save and load audios you need to manually create the folder ~/.local/share/grainiac/
+
+# Mappings
+|   Key     |   Function    |
+| --------- | ------------- |
+|   m       |   change mode |
+|   0..9    |   load / save |
+|   n       |   switch view | 
+|   esc     |   close       |
+
+
+# BOM
 
 This is the bill of material that I use for the midi controller and the raspberry pi.
 

@@ -1,0 +1,40 @@
+{
+  "presets": [
+    {
+      "gain": [0.5, 0.5, 0.5, 0.5],
+      "loop_start": [0.25, 0.25, 0.25, 0.25],
+      "loop_length": [0.5, 0.5, 0.5, 0.5],
+      "density": [0.5, 0.5, 0.5, 0.5],
+      "grain_length": [0.5, 0.5, 0.5, 0.5],
+      "play_speed": [1.0, 1.0, 1.0, 1.0],
+      "spray": [0.1, 0.1, 0.1, 0.1],
+      "pan": [0.0, 0.0, 0.0, 0.0],
+      "spread": [1.0, 1.0, 1.0, 1.0],
+      "attack": [0.25, 0.25, 0.25, 0.25],
+      "release": [0.25, 0.25, 0.25, 0.25],
+      "pitch": [1, 1, 1, 1],
+      "play_dir": [0, 0, 0, 0],
+      "grain_dir": [0, 0, 0, 0],
+      "name": "preset_1",
+      "char": "1"
+    }
+  ],
+  "mapping": {
+    "loop_start": 1,
+    "loop_length": 2,
+    "density": 3,
+    "grain_length": 4,
+    "play_speed": 5,
+    "spray": 6,
+    "pan": 9,
+    "spread": 10,
+    "attack": 8,
+    "release": 7,
+    "pitch": 11,
+    "gain": 12,
+    "record": 13,
+    "hold": 14,
+    "play_dir": 15,
+    "grain_dir": 16
+  }
+}

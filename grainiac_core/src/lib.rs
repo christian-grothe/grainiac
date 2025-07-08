@@ -8,6 +8,7 @@ pub mod voice;
 const VOICE_NUM: usize = 16;
 pub const INSTANCE_NUM: usize = 4;
 pub const BAR_NUM: usize = 100;
+pub const RMS_WINDOW: usize = 1024;
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
@@ -43,7 +44,7 @@ impl State {
             spread: 1.0,
             attack: 0.25,
             release: 0.25,
-            pitch: 1,
+            pitch: 0,
             gain: 0.5,
             is_recording: false,
             is_hold: false,
@@ -58,6 +59,8 @@ pub struct DrawData {
     pub grain_data: Vec<Option<(f32, f32, f32)>>,
     pub buffer: Vec<f32>,
     pub state: State,
+    pub input_peak: f32,
+    pub output_peak: f32,
 }
 
 impl DrawData {
@@ -66,7 +69,40 @@ impl DrawData {
             grain_data: vec![None; VOICE_NUM * GRAIN_NUM],
             buffer: vec![0.0; BAR_NUM],
             state: State::new(),
+            input_peak: 0.0,
+            output_peak: 0.0,
         }
+    }
+}
+
+pub struct PeakFollower {
+    pub value: f32,
+    release_coeff: f32,
+}
+
+impl PeakFollower {
+    pub fn new(release_time_ms: f32, sample_rate: f32) -> Self {
+        let release_samples = (release_time_ms * 0.001) * sample_rate;
+        let release_coeff = if release_samples > 0.0 {
+            (-1.0 / release_samples).exp()
+        } else {
+            0.0
+        };
+
+        PeakFollower {
+            value: 0.0,
+            release_coeff,
+        }
+    }
+
+    pub fn process(&mut self, sample: f32) -> f32 {
+        let abs_s = sample.abs();
+        if abs_s > self.value {
+            self.value = abs_s;
+        } else {
+            self.value *= self.release_coeff;
+        }
+        self.value
     }
 }
 
@@ -75,6 +111,8 @@ pub struct Sampler {
     pub draw_data: Input<Vec<DrawData>>,
     draw_data_update_count: usize,
     sample_rate: f32,
+    input_peak: PeakFollower,
+    output_peak: PeakFollower,
 }
 
 impl Sampler {
@@ -92,6 +130,8 @@ impl Sampler {
                 draw_data: buf_input,
                 draw_data_update_count: 0,
                 sample_rate,
+                input_peak: PeakFollower::new(250.0, sample_rate),
+                output_peak: PeakFollower::new(250.0, sample_rate),
             },
             buf_output,
         )
@@ -121,7 +161,10 @@ impl Sampler {
                 }
 
                 draw_data[i].state = instance.state.clone();
+                draw_data[i].input_peak = self.input_peak.value;
+                draw_data[i].output_peak = self.output_peak.value;
             }
+
             self.draw_data.publish();
             self.draw_data_update_count = 0;
         }
@@ -155,12 +198,31 @@ impl Sampler {
         let mut output_l = 0.0;
         let mut output_r = 0.0;
         let mono = *stereo_slice.0 + *stereo_slice.1;
+
+        // let threshold = 0.25;
+        // let ratio = 4.0;
+
+        // let gain = if mono.abs() < threshold {
+        //     1.0 + (ratio - 1.0) * (1.0 - (mono.abs() / threshold))
+        // } else {
+        //     1.0
+        // };
+
+        // mono *= gain;
+        // mono = mono.clamp(-1.0, 1.0);
+
+        self.input_peak.process(mono);
+
         for instance in self.instances.iter_mut() {
             let (l, r) = instance.render(&mono);
             output_l += l;
             output_r += r;
         }
+
+        self.output_peak.process(output_l + output_r);
+
         self.get_draw_data();
+
         *stereo_slice.0 = output_l;
         *stereo_slice.1 = output_r;
     }
@@ -498,11 +560,22 @@ impl BufferToDraw {
         }
     }
 
-    fn update(&mut self, sample: f32) {
-        self.sample_sum += sample.abs();
+    fn update(&mut self, mut sample: f32) {
+        let threshold = 0.35;
+        let ratio = 3.0;
+
+        if sample < threshold {
+            sample *= ratio;
+        }
+
+        self.sample_sum += sample * sample;
         self.sample_counter += 1;
+
         if self.sample_counter >= self.samples_per_bar {
-            self.buffer[self.current_bar] = self.sample_sum / self.samples_per_bar as f32;
+            let mean_square = self.sample_sum / self.samples_per_bar as f32;
+            self.buffer[self.current_bar] = mean_square.sqrt();
+
+            // Reset for next bar
             self.sample_sum = 0.0;
             self.sample_counter = 0;
             self.current_bar += 1;
