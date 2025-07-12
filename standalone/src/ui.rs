@@ -3,14 +3,15 @@ use std::{env, fs};
 use ratatui::{
     layout::{Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
-    text::{Line, Span},
-    widgets::{Block, List, ListDirection, Paragraph},
+    text::Span,
+    widgets::{Block, List, ListDirection},
     Frame,
 };
 
 use crate::{
+    peak_meter_widget::PeakMeter,
     state::{NumMode, State, View},
-    waveform_widget::Track,
+    track_widget::Track,
 };
 
 pub fn draw(frame: &mut Frame, state: &mut State) {
@@ -63,37 +64,56 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
 
     frame.render_widget(span, layout_vertical[6]);
 
-    let peak = (out_buf[0].input_peak * 15.0) as usize;
-    let bar = Span::from(">".repeat(peak));
-    let label = Span::from("Input  ");
-    let line = Line::from(vec![label, bar]);
+    let peak_meter_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
+        .split(layout_vertical[0]);
 
-    frame.render_widget(line, layout_vertical[0]);
-
-    let peak = (out_buf[0].output_peak * 15.0) as usize;
-    let bar = Span::from(">".repeat(peak));
-    let label = Span::from("Output ");
-    let line = Line::from(vec![label, bar]);
-
-    frame.render_widget(line, layout_vertical[1]);
+    let peak_meter_input = PeakMeter::from("Input", out_buf[0].input_peak, 15);
+    let peak_meter_output = PeakMeter::from("Output", out_buf[0].output_peak, 15);
+    frame.render_widget(peak_meter_input, peak_meter_layout[0]);
+    frame.render_widget(peak_meter_output, peak_meter_layout[1]);
 }
 
-fn render_preset_view(frame: &mut Frame, _state: &mut State) {
+fn render_preset_view(frame: &mut Frame, state: &mut State) {
     let layout_horizontal = Layout::default()
         .direction(Direction::Horizontal)
         .flex(Flex::Center)
         .constraints(vec![Constraint::Length(100)])
         .split(frame.area());
 
-    let popup = Paragraph::new("TBD").block(Block::bordered().title("Presets"));
-
-    let layout_menu = Layout::default()
+    let layout_vertical = Layout::default()
         .direction(Direction::Vertical)
         .flex(Flex::Center)
-        .constraints(vec![Constraint::Length(10)])
+        .constraints(vec![Constraint::Length(16)])
         .split(layout_horizontal[0]);
 
-    frame.render_widget(popup, layout_menu[0]);
+    let split_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .flex(Flex::Center)
+        .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
+        .split(layout_vertical[0]);
+
+    let list = List::new(
+        state
+            .presets
+            .iter()
+            .map(|p| p.name.as_str())
+            .collect::<Vec<&str>>(),
+    )
+    .block(Block::bordered().title("Presets"))
+    .highlight_style(Style::new().italic())
+    .highlight_symbol(">>")
+    .repeat_highlight_symbol(true)
+    .direction(ListDirection::TopToBottom);
+
+    let selected_preset = &state.presets[0];
+    let preview = List::new(selected_preset.to_preview())
+        .block(Block::bordered())
+        .direction(ListDirection::TopToBottom);
+
+    frame.render_widget(list, split_layout[0]);
+    frame.render_widget(preview, split_layout[1]);
 }
 
 fn render_audio_view(frame: &mut Frame, _state: &mut State) {
@@ -106,7 +126,7 @@ fn render_audio_view(frame: &mut Frame, _state: &mut State) {
     let layout_vertical = Layout::default()
         .direction(Direction::Vertical)
         .flex(Flex::Center)
-        .constraints(vec![Constraint::Length(10)])
+        .constraints(vec![Constraint::Length(12)])
         .split(layout_horizontal[0]);
 
     let split_layout = Layout::default()

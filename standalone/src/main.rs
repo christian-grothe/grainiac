@@ -17,9 +17,10 @@ use ratatui::crossterm::{
     execute,
 };
 
+mod peak_meter_widget;
 mod state;
+mod track_widget;
 mod ui;
-mod waveform_widget;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct Config {
@@ -46,6 +47,42 @@ pub struct Preset {
     grain_dir: [u8; 4],
     name: String,
     char: char,
+}
+
+impl Preset {
+    fn to_preview(&self) -> Vec<String> {
+        let loop_start: Vec<String> = self.loop_start.iter().map(|p| p.to_string()).collect();
+        let loop_length: Vec<String> = self.loop_length.iter().map(|p| p.to_string()).collect();
+        let density: Vec<String> = self.density.iter().map(|p| p.to_string()).collect();
+        let grain_length: Vec<String> = self.grain_length.iter().map(|p| p.to_string()).collect();
+        let play_speed: Vec<String> = self.play_speed.iter().map(|p| p.to_string()).collect();
+        let spray: Vec<String> = self.spray.iter().map(|p| p.to_string()).collect();
+        let pan: Vec<String> = self.pan.iter().map(|p| p.to_string()).collect();
+        let spread: Vec<String> = self.spread.iter().map(|p| p.to_string()).collect();
+        let attack: Vec<String> = self.attack.iter().map(|p| p.to_string()).collect();
+        let release: Vec<String> = self.release.iter().map(|p| p.to_string()).collect();
+        let pitch: Vec<String> = self.pitch.iter().map(|p| p.to_string()).collect();
+        let play_dir: Vec<String> = self.play_dir.iter().map(|p| p.to_string()).collect();
+        let grain_dir: Vec<String> = self.grain_dir.iter().map(|p| p.to_string()).collect();
+        let gain: Vec<String> = self.gain.iter().map(|p| p.to_string()).collect();
+
+        vec![
+            format!("start: {}", loop_start.join(", ")),
+            format!("length: {}", loop_length.join(", ")),
+            format!("dens: {}", density.join(", ")),
+            format!("len: {}", grain_length.join(", ")),
+            format!("spd: {}", play_speed.join(", ")),
+            format!("spy: {}", spray.join(", ")),
+            format!("pan: {}", pan.join(", ")),
+            format!("spr: {}", spread.join(", ")),
+            format!("att: {}", attack.join(", ")),
+            format!("rel: {}", release.join(", ")),
+            format!("pch: {}", pitch.join(", ")),
+            format!("vol: {}", gain.join(", ")),
+            format!("pl_dir: {}", play_dir.join(", ")),
+            format!("gr_dir: {}", grain_dir.join(", ")),
+        ]
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Copy)]
