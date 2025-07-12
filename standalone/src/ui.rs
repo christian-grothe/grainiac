@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Direction, Flex, Layout},
     style::{Style, Stylize},
     text::Span,
-    widgets::{Block, List, ListDirection},
+    widgets::{Block, List, ListDirection, ListItem},
     Frame,
 };
 
@@ -94,20 +94,25 @@ fn render_preset_view(frame: &mut Frame, state: &mut State) {
         .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
         .split(layout_vertical[0]);
 
-    let list = List::new(
-        state
-            .presets
-            .iter()
-            .map(|p| p.name.as_str())
-            .collect::<Vec<&str>>(),
-    )
-    .block(Block::bordered().title("Presets"))
-    .highlight_style(Style::new().italic())
-    .highlight_symbol(">>")
-    .repeat_highlight_symbol(true)
-    .direction(ListDirection::TopToBottom);
+    let list_items: Vec<ListItem> = state
+        .presets
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let content = if state.selectedPresetIdx == i {
+                format!(">> {}", p.name)
+            } else {
+                format!("   {}", p.name)
+            };
+            ListItem::new(content)
+        })
+        .collect();
 
-    let selected_preset = &state.presets[0];
+    let list = List::new(list_items)
+        .block(Block::bordered().title("Presets"))
+        .direction(ListDirection::TopToBottom);
+
+    let selected_preset = &state.presets[state.selectedPresetIdx];
     let preview = List::new(selected_preset.to_preview())
         .block(Block::bordered())
         .direction(ListDirection::TopToBottom);

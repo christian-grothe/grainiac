@@ -7,7 +7,7 @@ use std::{
 
 use crossbeam::channel::Sender;
 use grainiac_core::{DrawData, Output};
-use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
 use crate::{Config, Msg, Preset};
 
@@ -53,6 +53,8 @@ pub struct State {
     pub out_buf: Output<Vec<DrawData>>,
     pub num_mode: NumMode,
     pub presets: Vec<Preset>,
+    pub selectedPresetIdx: usize,
+    pub selectedAudioIdx: usize,
     pub s: Sender<Msg>,
 }
 
@@ -63,6 +65,8 @@ impl State {
             view: View::Main,
             out_buf,
             num_mode: NumMode::LoadPreset,
+            selectedPresetIdx: 0,
+            selectedAudioIdx: 0,
             presets,
             s,
         }
@@ -71,34 +75,74 @@ impl State {
     pub fn handle_event(&mut self, ms: u64) -> io::Result<()> {
         if event::poll(Duration::from_millis(ms))? {
             match event::read()? {
-                Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                    match key_event.code {
-                        KeyCode::Esc => self.exiting = true,
-                        KeyCode::Char('m') => self.num_mode.next(),
-                        KeyCode::Char('n') => self.view.next(),
-                        KeyCode::Char(c) => {
-                            if c.is_ascii_digit() {
-                                match self.num_mode {
-                                    NumMode::LoadPreset => {
-                                        if let Some(preset) =
-                                            self.presets.iter().find(|p| p.char == c)
-                                        {
-                                            self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
-                                        }
-                                    }
-                                    NumMode::SavePreset => self.save_preset(c),
-                                    NumMode::LoadAudio => self.s.send(Msg::LoadAudio(c)).unwrap(),
-                                    NumMode::SaveAudio => self.s.send(Msg::SaveAudio(c)).unwrap(),
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
+                Event::Key(key_event) if key_event.kind == KeyEventKind::Press => match self.view {
+                    View::Main => self.handle_main_view(key_event),
+                    View::Preset => self.handle_preset_view(key_event),
+                    View::Audio => self.handle_audio_view(key_event),
+                },
                 _ => {}
             }
         }
         Ok(())
+    }
+
+    fn handle_main_view(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Esc => self.exiting = true,
+            KeyCode::Char('m') => self.num_mode.next(),
+            KeyCode::Char('n') => self.view.next(),
+            KeyCode::Char(c) => {
+                if c.is_ascii_digit() {
+                    match self.num_mode {
+                        NumMode::LoadPreset => {
+                            if let Some(preset) = self.presets.iter().find(|p| p.char == c) {
+                                self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
+                                self.selectedPresetIdx = c.to_digit(10).unwrap() as usize - 1;
+                            }
+                        }
+                        NumMode::SavePreset => self.save_preset(c),
+                        NumMode::LoadAudio => self.s.send(Msg::LoadAudio(c)).unwrap(),
+                        NumMode::SaveAudio => self.s.send(Msg::SaveAudio(c)).unwrap(),
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_preset_view(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Esc => self.exiting = true,
+            KeyCode::Char('n') => self.view.next(),
+            KeyCode::Char('j') => {
+                self.selectedPresetIdx = (self.selectedPresetIdx + 1) % self.presets.len()
+            }
+            KeyCode::Char('k') => {
+                self.selectedPresetIdx = if self.selectedPresetIdx == 0 {
+                    self.presets.len() - 1
+                } else {
+                    self.selectedPresetIdx - 1
+                }
+            }
+            KeyCode::Enter => {
+                if let Some(preset) = self
+                    .presets
+                    .iter()
+                    .find(|p| (p.char.to_digit(10).unwrap()) as usize == self.selectedPresetIdx + 1)
+                {
+                    self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
+                    self.view = View::Main;
+                }
+            }
+            _ => {}
+        }
+    }
+    fn handle_audio_view(&mut self, key_event: KeyEvent) {
+        match key_event.code {
+            KeyCode::Esc => self.exiting = true,
+            KeyCode::Char('n') => self.view.next(),
+            _ => {}
+        }
     }
 
     fn save_preset(&mut self, char: char) {
