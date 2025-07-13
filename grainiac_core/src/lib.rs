@@ -199,18 +199,6 @@ impl Sampler {
         let mut output_r = 0.0;
         let mono = *stereo_slice.0 + *stereo_slice.1;
 
-        // let threshold = 0.25;
-        // let ratio = 4.0;
-
-        // let gain = if mono.abs() < threshold {
-        //     1.0 + (ratio - 1.0) * (1.0 - (mono.abs() / threshold))
-        // } else {
-        //     1.0
-        // };
-
-        // mono *= gain;
-        // mono = mono.clamp(-1.0, 1.0);
-
         self.input_peak.process(mono);
 
         for instance in self.instances.iter_mut() {
@@ -391,6 +379,11 @@ impl Sampler {
     }
 }
 
+enum Mode {
+    Grain,
+    Tape,
+}
+
 struct Instance {
     buffer: Vec<f32>,
     buffer_to_draw: BufferToDraw,
@@ -398,6 +391,7 @@ struct Instance {
     voices: Vec<Voice>,
     grain_data: Vec<(f32, f32, f32)>,
     state: State,
+    mode: Mode,
 }
 
 impl Instance {
@@ -416,7 +410,7 @@ impl Instance {
                 voices
             },
             grain_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
-
+            mode: Mode::Grain,
             state: State::new(),
         }
     }
@@ -425,6 +419,10 @@ impl Instance {
         self.state.is_recording = true;
         self.write_index = 0;
         self.buffer_to_draw.reset();
+    }
+
+    pub fn setMode(&mut self, mode: Mode) {
+        self.mode = mode;
     }
 
     fn set_play_speed(&mut self, value: f32) {
