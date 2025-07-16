@@ -29,27 +29,29 @@ You need to have a config.json file under ~/.config/grainiac/ with the following
       "pitch": [1, 1, 1, 1],
       "play_dir": [0, 0, 0, 0],
       "grain_dir": [0, 0, 0, 0],
+      "mode": [0, 0, 0, 0],
       "name": "preset_1",
       "char": "1"
     }
   ],
   "mapping": {
-    "loop_start": 1,
-    "loop_length": 2,
-    "density": 3,
-    "grain_length": 4,
-    "play_speed": 5,
-    "spray": 6,
-    "pan": 9,
-    "spread": 10,
-    "attack": 8,
-    "release": 7,
-    "pitch": 11,
-    "gain": 12,
-    "record": 13,
-    "hold": 14,
-    "play_dir": 15,
-    "grain_dir": 16
+    "loop_start": 40,
+    "loop_length": 41,
+    "density": 42,
+    "grain_length": 43,
+    "play_speed": 44,
+    "spray": 45,
+    "pan": 46,
+    "spread": 47,
+    "attack": 48,
+    "release": 49,
+    "pitch": 50,
+    "gain": 51,
+    "record": 52,
+    "hold": 53,
+    "play_dir": 54,
+    "grain_dir": 55,
+    "mode": 56
   }
 }
 ```
