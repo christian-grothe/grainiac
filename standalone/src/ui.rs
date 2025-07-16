@@ -99,7 +99,7 @@ fn render_preset_view(frame: &mut Frame, state: &mut State) {
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            let content = if state.selectedPresetIdx == i {
+            let content = if state.selected_preset_idx == i {
                 format!(">> {}", p.name)
             } else {
                 format!("   {}", p.name)
@@ -112,7 +112,7 @@ fn render_preset_view(frame: &mut Frame, state: &mut State) {
         .block(Block::bordered().title("Presets"))
         .direction(ListDirection::TopToBottom);
 
-    let selected_preset = &state.presets[state.selectedPresetIdx];
+    let selected_preset = &state.presets[state.selected_preset_idx];
     let preview = List::new(selected_preset.to_preview())
         .block(Block::bordered())
         .direction(ListDirection::TopToBottom);

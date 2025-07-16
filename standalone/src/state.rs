@@ -53,8 +53,8 @@ pub struct State {
     pub out_buf: Output<Vec<DrawData>>,
     pub num_mode: NumMode,
     pub presets: Vec<Preset>,
-    pub selectedPresetIdx: usize,
-    pub selectedAudioIdx: usize,
+    pub selected_preset_idx: usize,
+    pub selectes_audio_idx: usize,
     pub s: Sender<Msg>,
 }
 
@@ -65,8 +65,8 @@ impl State {
             view: View::Main,
             out_buf,
             num_mode: NumMode::LoadPreset,
-            selectedPresetIdx: 0,
-            selectedAudioIdx: 0,
+            selected_preset_idx: 0,
+            selectes_audio_idx: 0,
             presets,
             s,
         }
@@ -97,7 +97,7 @@ impl State {
                         NumMode::LoadPreset => {
                             if let Some(preset) = self.presets.iter().find(|p| p.char == c) {
                                 self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
-                                self.selectedPresetIdx = c.to_digit(10).unwrap() as usize - 1;
+                                self.selected_preset_idx = c.to_digit(10).unwrap() as usize - 1;
                             }
                         }
                         NumMode::SavePreset => self.save_preset(c),
@@ -115,21 +115,19 @@ impl State {
             KeyCode::Esc => self.exiting = true,
             KeyCode::Char('n') => self.view.next(),
             KeyCode::Char('j') => {
-                self.selectedPresetIdx = (self.selectedPresetIdx + 1) % self.presets.len()
+                self.selected_preset_idx = (self.selected_preset_idx + 1) % self.presets.len()
             }
             KeyCode::Char('k') => {
-                self.selectedPresetIdx = if self.selectedPresetIdx == 0 {
+                self.selected_preset_idx = if self.selected_preset_idx == 0 {
                     self.presets.len() - 1
                 } else {
-                    self.selectedPresetIdx - 1
+                    self.selected_preset_idx - 1
                 }
             }
             KeyCode::Enter => {
-                if let Some(preset) = self
-                    .presets
-                    .iter()
-                    .find(|p| (p.char.to_digit(10).unwrap()) as usize == self.selectedPresetIdx + 1)
-                {
+                if let Some(preset) = self.presets.iter().find(|p| {
+                    (p.char.to_digit(10).unwrap()) as usize == self.selected_preset_idx + 1
+                }) {
                     self.s.send(Msg::ApplyPreset(preset.clone())).unwrap();
                     self.view = View::Main;
                 }

@@ -1,7 +1,10 @@
-use super::grain::Grain;
+use crate::{
+    constants::{BUFFER_SIZE_SECONDS, GRAIN_NUM},
+    grain::GrainData,
+    instance::Mode,
+};
 
-pub const GRAIN_NUM: usize = 256;
-pub const BUFFER_SIZE_SECONDS: f32 = 10.0;
+use super::grain::Grain;
 
 #[derive(Clone, Debug, Copy)]
 pub enum PlayDirection {
@@ -21,22 +24,23 @@ pub struct Voice {
     pub midi_note: usize,
     pub loop_start: f32,
     pub loop_length: f32,
+    anti_clip: Envelope,
     grains: [Grain; GRAIN_NUM],
     grain_trigger: Trigger,
     play_dircetion: PlayDirection,
     grain_dircetion: PlayDirection,
     buffersize: usize,
-    play_pos: f32,
+    pub play_pos: f32,
     inc: f32,
     sample_rate: f32,
     pitch: f32,
     global_pitch: i8,
-    gain: f32,
+    pub gain: f32,
     spray: f32,
     spread: f32,
     pan: f32,
     grain_length: f32,
-    grain_data: Vec<(f32, f32, f32)>,
+    grain_data: Vec<GrainData>,
 }
 
 impl Voice {
@@ -49,6 +53,7 @@ impl Voice {
             play_dircetion: PlayDirection::Forward,
             grain_dircetion: PlayDirection::Forward,
             env: Envelope::new(sample_rate),
+            anti_clip: Envelope::from(sample_rate, 0.001, 0.001, EnvelopeState::Attack),
             is_playing: false,
             midi_note: 0,
             buffersize,
@@ -61,7 +66,7 @@ impl Voice {
             global_pitch: 0,
             gain: 0.0,
             grain_length: 0.25,
-            grain_data: vec![(0.0, 0.0, 0.0); GRAIN_NUM],
+            grain_data: vec![GrainData::default(); GRAIN_NUM],
             spread: 1.0,
             spray: 0.0,
             pan: 0.0,
@@ -136,25 +141,47 @@ impl Voice {
         self.env.state == EnvelopeState::Release
     }
 
-    pub fn render(&mut self) -> &[(f32, f32, f32)] {
+    pub fn render(&mut self, mode: Mode) -> Vec<GrainData> {
         let loop_end = (self.loop_start + self.loop_length).clamp(0.0, 1.0);
 
         match self.play_dircetion {
             PlayDirection::Forward => {
-                self.play_pos += self.inc;
+                self.play_pos = match mode {
+                    Mode::Grain => self.play_pos + self.inc,
+                    Mode::Tape => self.play_pos + (1.0 / self.buffersize as f32 * self.pitch),
+                };
+
+                if self.play_pos >= loop_end - 0.001
+                    && self.anti_clip.state != EnvelopeState::Release
+                {
+                    self.anti_clip.state = EnvelopeState::Release;
+                }
+
                 if self.play_pos > loop_end || self.play_pos < self.loop_start {
                     self.play_pos = self.loop_start;
+                    self.anti_clip.state = EnvelopeState::Attack;
                 }
             }
             PlayDirection::Backward => {
-                self.play_pos -= self.inc;
-                if self.play_pos < self.loop_start || self.play_pos <= 0.0 {
+                self.play_pos = match mode {
+                    Mode::Grain => self.play_pos - self.inc,
+                    Mode::Tape => self.play_pos - (1.0 / self.buffersize as f32 * self.pitch),
+                };
+
+                if self.play_pos <= self.loop_start + 0.001
+                    && self.anti_clip.state != EnvelopeState::Release
+                {
+                    self.anti_clip.state = EnvelopeState::Release;
+                }
+
+                if self.play_pos < self.loop_start {
                     self.play_pos = loop_end;
+                    self.anti_clip.state = EnvelopeState::Attack;
                 }
             }
         }
 
-        if self.grain_trigger.update() {
+        if self.grain_trigger.update() && mode == Mode::Grain {
             for grain in self.grains.iter_mut() {
                 let mut pos = self.play_pos + self.spray * ((fastrand::f32() * 0.5) - 0.25);
 
@@ -188,7 +215,13 @@ impl Voice {
             }
         }
 
-        self.gain = self.env.update();
+        let clip_gain = self.anti_clip.update();
+        let env = self.env.update();
+        if mode == Mode::Tape {
+            self.gain = env * clip_gain;
+        } else {
+            self.gain = env;
+        }
 
         if self.env.state == EnvelopeState::Off {
             self.midi_note = 0;
@@ -199,7 +232,7 @@ impl Voice {
             }
         }
 
-        &self.grain_data
+        self.grain_data.clone()
     }
 }
 
@@ -262,10 +295,19 @@ pub struct Envelope {
 impl Envelope {
     fn new(sample_rate: f32) -> Self {
         Self {
-            inc_attack: 1.0 / (sample_rate),
-            inc_release: 1.0 / (sample_rate),
+            inc_attack: 1.0 / sample_rate,
+            inc_release: 1.0 / sample_rate,
             gain: 0.0,
             state: EnvelopeState::Off,
+        }
+    }
+
+    fn from(sample_rate: f32, attack: f32, release: f32, state: EnvelopeState) -> Self {
+        Self {
+            inc_attack: 1.0 / (sample_rate * attack),
+            inc_release: 1.0 / (sample_rate * release),
+            gain: 0.0,
+            state,
         }
     }
 

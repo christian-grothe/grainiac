@@ -45,6 +45,7 @@ pub struct Preset {
     pitch: [i8; 4],
     play_dir: [u8; 4],
     grain_dir: [u8; 4],
+    mode: [u8; 4],
     name: String,
     char: char,
 }
@@ -103,6 +104,7 @@ struct Mapping {
     hold: u8,
     play_dir: u8,
     grain_dir: u8,
+    mode: u8,
 }
 
 pub enum Msg {
@@ -395,6 +397,11 @@ fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mappi
         x if x == mapping.grain_dir => {
             if value > 0.0 {
                 sampler.toggle_grain_dir(instance);
+            }
+        }
+        x if x == mapping.mode => {
+            if value > 0.0 {
+                sampler.toggle_mode(instance);
             }
         }
         _ => {} //println!("{:?}", event.bytes),

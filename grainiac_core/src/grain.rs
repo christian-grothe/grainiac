@@ -2,6 +2,13 @@ use std::f64::consts::PI;
 
 use crate::voice::PlayDirection;
 
+#[derive(Default, Clone, Copy)]
+pub struct GrainData {
+    pub pos: f32,
+    pub gain: f32,
+    pub stereo_pos: f32,
+}
+
 #[derive(Default, Copy, Clone)]
 pub struct Grain {
     env: Envelope,
@@ -34,7 +41,7 @@ impl Grain {
         self.grain_direction = grain_direction;
     }
 
-    pub fn update(&mut self, gain: f32) -> (f32, f32, f32) {
+    pub fn update(&mut self, gain: f32) -> GrainData {
         match self.grain_direction {
             PlayDirection::Forward => {
                 self.pos += self.inc;
@@ -60,7 +67,11 @@ impl Grain {
             self.reset();
         }
 
-        (self.pos, self.gain, self.stereo_pos)
+        GrainData {
+            pos: self.pos,
+            gain: self.gain,
+            stereo_pos: self.stereo_pos,
+        }
     }
 
     pub fn reset(&mut self) {

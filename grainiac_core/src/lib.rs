@@ -1,17 +1,19 @@
 use rtsan_standalone::nonblocking;
 pub use triple_buffer::{triple_buffer, Input, Output};
-use voice::{PlayDirection, Voice, BUFFER_SIZE_SECONDS, GRAIN_NUM};
+use voice::PlayDirection;
 
+use crate::{
+    constants::{BAR_NUM, BUFFER_SIZE_SECONDS, GRAIN_NUM, INSTANCE_NUM, VOICE_NUM},
+    instance::{Instance, Mode},
+};
+
+mod constants;
 mod grain;
+pub mod instance;
 pub mod voice;
 
-const VOICE_NUM: usize = 16;
-pub const INSTANCE_NUM: usize = 4;
-pub const BAR_NUM: usize = 100;
-pub const RMS_WINDOW: usize = 1024;
-
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct State {
     pub loop_start: f32,
     pub loop_length: f32,
@@ -29,6 +31,7 @@ pub struct State {
     pub is_hold: bool,
     pub play_dir: PlayDirection,
     pub grain_dir: PlayDirection,
+    pub mode: Mode,
 }
 
 impl State {
@@ -50,13 +53,15 @@ impl State {
             is_hold: false,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
+            mode: Mode::Grain,
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DrawData {
     pub grain_data: Vec<Option<(f32, f32, f32)>>,
+    pub play_heads: Vec<Option<f32>>,
     pub buffer: Vec<f32>,
     pub state: State,
     pub input_peak: f32,
@@ -67,6 +72,7 @@ impl DrawData {
     pub fn new() -> Self {
         Self {
             grain_data: vec![None; VOICE_NUM * GRAIN_NUM],
+            play_heads: vec![None; VOICE_NUM],
             buffer: vec![0.0; BAR_NUM],
             state: State::new(),
             input_peak: 0.0,
@@ -153,7 +159,16 @@ impl Sampler {
                     if instance.state.gain == 0.0 {
                         break;
                     }
-                    draw_data[i].grain_data[index] = Some(*data);
+                    draw_data[i].grain_data[index] = Some((data.pos, data.gain, data.stereo_pos));
+                }
+
+                draw_data[i].play_heads.fill(None);
+                if instance.state.mode == Mode::Tape {
+                    for (index, voice) in instance.voices.iter().enumerate() {
+                        if voice.midi_note != 0 {
+                            draw_data[i].play_heads[index] = Some(voice.play_pos);
+                        }
+                    }
                 }
 
                 for (index, data) in instance.buffer_to_draw.buffer.iter().enumerate() {
@@ -237,6 +252,15 @@ impl Sampler {
                         break;
                     }
                 }
+            }
+        }
+    }
+
+    pub fn toggle_mode(&mut self, index: usize) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            match instance.state.mode {
+                Mode::Tape => instance.set_mode(Mode::Grain),
+                Mode::Grain => instance.set_mode(Mode::Tape),
             }
         }
     }
@@ -379,167 +403,7 @@ impl Sampler {
     }
 }
 
-enum Mode {
-    Grain,
-    Tape,
-}
-
-struct Instance {
-    buffer: Vec<f32>,
-    buffer_to_draw: BufferToDraw,
-    write_index: usize,
-    voices: Vec<Voice>,
-    grain_data: Vec<(f32, f32, f32)>,
-    state: State,
-    mode: Mode,
-}
-
-impl Instance {
-    pub fn new(sample_rate: f32) -> Self {
-        let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
-        let loop_area = (0.25, 0.5);
-        Self {
-            buffer: vec![0.0; buffersize],
-            buffer_to_draw: BufferToDraw::new(BAR_NUM, buffersize),
-            write_index: 0,
-            voices: {
-                let mut voices: Vec<Voice> = Vec::with_capacity(VOICE_NUM);
-                for _ in 0..VOICE_NUM {
-                    voices.push(Voice::new(sample_rate, loop_area.clone()));
-                }
-                voices
-            },
-            grain_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
-            mode: Mode::Grain,
-            state: State::new(),
-        }
-    }
-
-    pub fn record(&mut self) {
-        self.state.is_recording = true;
-        self.write_index = 0;
-        self.buffer_to_draw.reset();
-    }
-
-    pub fn setMode(&mut self, mode: Mode) {
-        self.mode = mode;
-    }
-
-    fn set_play_speed(&mut self, value: f32) {
-        self.state.play_speed = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_play_speed(value);
-        }
-    }
-
-    fn set_loop_start(&mut self, value: f32) {
-        self.state.loop_start = value.clamp(0.0, 0.99);
-        for voice in self.voices.iter_mut() {
-            voice.set_loop_start(value.clamp(0.0, 0.99));
-        }
-    }
-
-    fn set_loop_length(&mut self, value: f32) {
-        self.state.loop_length = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_loop_length(value);
-        }
-    }
-
-    fn set_density(&mut self, value: f32) {
-        self.state.density = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_density(value);
-        }
-    }
-
-    fn set_spray(&mut self, value: f32) {
-        self.state.spray = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_spray(value);
-        }
-    }
-
-    fn set_grain_length(&mut self, value: f32) {
-        self.state.grain_length = value;
-        for voice in self.voices.iter_mut() {
-            voice.set_grain_length(value);
-        }
-    }
-
-    fn set_gain(&mut self, value: f32) {
-        self.state.gain = value;
-    }
-
-    fn toggle_hold(&mut self) {
-        match self.state.is_hold {
-            true => {
-                for voice in self.voices.iter_mut() {
-                    if voice.midi_note != 0 {
-                        voice.env.set_state(voice::EnvelopeState::Release);
-                    }
-                }
-                self.state.is_hold = false;
-            }
-            false => {
-                for voice in self.voices.iter_mut() {
-                    if voice.midi_note != 0 {
-                        voice.env.set_state(voice::EnvelopeState::Hold);
-                    }
-                }
-                self.state.is_hold = true;
-            }
-        }
-    }
-
-    fn write(&mut self, sample: f32) {
-        self.buffer[self.write_index] = sample;
-        self.write_index = self.write_index + 1;
-
-        self.buffer_to_draw.update(sample);
-
-        if self.write_index >= self.buffer.len() {
-            self.write_index = 0;
-            self.state.is_recording = false;
-            self.buffer_to_draw.reset();
-        }
-    }
-
-    pub fn render(&mut self, input_sample: &f32) -> (f32, f32) {
-        if self.state.is_recording {
-            self.write(*input_sample);
-        }
-
-        self.grain_data.clear();
-        for voice in self.voices.iter_mut() {
-            if voice.midi_note != 0 {
-                self.grain_data.extend(voice.render());
-            }
-        }
-
-        let mut output = (0.0, 0.0);
-        for (pos, gain, stereo_pos) in self.grain_data.iter() {
-            let play_index_int = (pos * self.buffer.len() as f32) as usize;
-            let next_index = (play_index_int + 1) % self.buffer.len();
-            let frac = pos * self.buffer.len() as f32 - play_index_int as f32;
-
-            let left_gain = 0.5 * (1.0 - stereo_pos) * self.state.gain;
-            let right_gain = 0.5 * (1.0 + stereo_pos) * self.state.gain;
-
-            let next_sample =
-                self.buffer[play_index_int] * (1.0 - frac) + self.buffer[next_index] * frac;
-
-            output.0 += next_sample * gain * left_gain;
-            output.1 += next_sample * gain * right_gain;
-        }
-
-        output.0 *= 0.25;
-        output.1 *= 0.25;
-        output
-    }
-}
-
-struct BufferToDraw {
+pub struct BufferToDraw {
     buffer: Vec<f32>,
     samples_per_bar: usize,
     sample_counter: usize,

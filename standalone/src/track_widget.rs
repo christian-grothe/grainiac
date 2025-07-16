@@ -1,5 +1,5 @@
 use brailles::{NUM_STATES, STATES, STATE_10};
-use grainiac_core::{voice::PlayDirection, DrawData};
+use grainiac_core::{instance::Mode, voice::PlayDirection, DrawData};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -73,6 +73,21 @@ impl Widget for Track {
             }
         });
 
+        // draw play heads
+        self.draw_data.play_heads.iter().for_each(|pos| {
+            if let Some(pos) = pos {
+                let state = STATES[NUM_STATES - 1];
+                let x = pos * self.draw_data.buffer.len() as f32;
+
+                for (index, char) in state.iter().enumerate() {
+                    let char_str = char.to_string();
+                    buf[(x as u16 + layout[1].left(), layout[1].top() + index as u16)]
+                        .set_style(Style::default().fg(Color::Rgb(255, 255, 186)))
+                        .set_symbol(char_str.as_str());
+                }
+            }
+        });
+
         // draw loop length
         for (index, char) in STATE_10.iter().enumerate() {
             let char_str = char.to_string();
@@ -106,6 +121,11 @@ impl Widget for Track {
             "[X]"
         } else {
             "[ ]"
+        };
+        let mode = if self.draw_data.state.mode == Mode::Grain {
+            "grain"
+        } else {
+            "tape"
         };
 
         let play_dir = match self.draw_data.state.play_dir {
@@ -143,6 +163,9 @@ impl Widget for Track {
                 grain_dir,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
+            Span::styled("  | ", Style::default().bold()),
+            Span::styled("Mode: ", Style::default().bold()),
+            Span::styled(mode, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
         ]));
 
         Paragraph::new(spans).render(param_line_a[0], buf);
