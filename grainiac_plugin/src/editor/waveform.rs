@@ -38,7 +38,7 @@ impl View for Waveform {
         let grain_data = draw_data.read()[self.index].grain_data.clone();
         let loop_start = draw_data.read()[self.index].state.loop_start.clone();
         let loop_length = draw_data.read()[self.index].state.loop_length.clone();
-        let loop_area = (loop_start, loop_start + loop_length);
+        let loop_area = (loop_start, loop_length);
 
         let paint = Paint::color(Color::rgb(200, 200, 200));
         let mut path = Path::new();
