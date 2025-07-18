@@ -1,18 +1,17 @@
-use grainiac_core::{DrawData, Output};
 use nih_plug::nih_error;
 use nih_plug::prelude::Editor;
 use nih_plug_vizia::vizia::prelude::*;
-use nih_plug_vizia::widgets::{ParamSlider, ParamSliderExt, ParamSliderStyle};
+use nih_plug_vizia::widgets::*;
 use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use crate::GrainiacParams;
+use grainiac_core::{DrawData, Output, INSTANCE_NUM};
 mod waveform;
-
-use crate::GrainiacPluginParams;
 
 #[derive(Lens)]
 struct Data {
-    params: Arc<GrainiacPluginParams>,
+    params: Arc<GrainiacParams>,
 }
 
 impl Model for Data {}
@@ -22,9 +21,9 @@ pub(crate) fn default_state() -> Arc<ViziaState> {
 }
 
 pub(crate) fn create(
-    params: Arc<GrainiacPluginParams>,
+    params: Arc<GrainiacParams>,
     editor_state: Arc<ViziaState>,
-    draw_data: Arc<Output<Vec<DrawData>>>,
+    draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
 ) -> Option<Box<dyn Editor>> {
     create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
         assets::register_noto_sans_light(cx);
@@ -41,7 +40,7 @@ pub(crate) fn create(
 
         VStack::new(cx, |cx| {
             top_bar(cx);
-            (0..4).for_each(|i| instace_waveform(cx, draw_data.clone(), i as usize));
+            (0..INSTANCE_NUM).for_each(|i| instace_waveform(cx, draw_data.clone(), i as usize));
         });
     })
 }
@@ -61,7 +60,12 @@ fn top_bar(cx: &mut Context) {
     .width(Stretch(1.0));
 }
 
-fn waveform(cx: &mut Context, draw_data: Arc<Output<Vec<DrawData>>>, index: usize) {
+fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
+    instance(cx, index);
+    waveform(cx, draw_data.clone(), index);
+}
+
+fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
     HStack::new(cx, |cx| {
         waveform::Waveform::new(cx, draw_data.clone(), index);
     })
@@ -70,11 +74,6 @@ fn waveform(cx: &mut Context, draw_data: Arc<Output<Vec<DrawData>>>, index: usiz
     .top(Pixels(15.0))
     .bottom(Pixels(25.0))
     .class("waveform");
-}
-
-fn instace_waveform(cx: &mut Context, draw_data: Arc<Output<Vec<DrawData>>>, index: usize) {
-    instance(cx, index);
-    waveform(cx, draw_data.clone(), index);
 }
 
 fn instance(cx: &mut Context, index: usize) {
@@ -134,9 +133,11 @@ fn instance(cx: &mut Context, index: usize) {
             });
             VStack::new(cx, |cx| {
                 Label::new(cx, "Pan");
-                ParamSlider::new(cx, Data::params, move |params| &params.instances[index].pan)
-                    .bottom(Pixels(10.0))
-                    .set_style(ParamSliderStyle::FromLeft);
+                ParamSlider::new(cx, Data::params, move |params| {
+                    &params.instances[index].pan
+                })
+                .bottom(Pixels(10.0))
+                .set_style(ParamSliderStyle::FromLeft);
                 Label::new(cx, "Spread");
                 ParamSlider::new(cx, Data::params, move |params| {
                     &params.instances[index].spread

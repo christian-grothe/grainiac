@@ -2,7 +2,7 @@ use rtsan_standalone::nonblocking;
 pub use triple_buffer::{triple_buffer, Input, Output};
 use voice::PlayDirection;
 
-use crate::{
+pub use crate::{
     constants::{BAR_NUM, BUFFER_SIZE_SECONDS, GRAIN_NUM, INSTANCE_NUM, VOICE_NUM},
     instance::{Instance, Mode},
 };

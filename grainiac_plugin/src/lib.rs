@@ -1,9 +1,15 @@
-use grainiac_core::{DrawData, Output, Sampler};
+use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 mod editor;
+
+pub struct Grainiac {
+    params: Arc<GrainiacParams>,
+    sampler: Sampler,
+    buf_output: Arc<Mutex<Output<Vec<DrawData>>>>,
+}
 
 #[derive(Params)]
 struct InstanceParams {
@@ -31,6 +37,7 @@ struct InstanceParams {
     pub spread: FloatParam,
     #[id = "pan"]
     pub pan: FloatParam,
+
 }
 
 impl InstanceParams {
@@ -92,15 +99,8 @@ impl InstanceParams {
             gain: FloatParam::new("Gain", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
-            pan: FloatParam::new(
-                "Pan",
-                0.0,
-                FloatRange::Linear {
-                    min: -1.0,
-                    max: 1.0,
-                },
-            )
-            .with_value_to_string(formatters::v2s_f32_rounded(2)),
+            pan: FloatParam::new("Pan", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             spread: FloatParam::new("Spread", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),
@@ -109,49 +109,45 @@ impl InstanceParams {
 }
 
 #[derive(Params)]
-struct GrainiacPluginParams {
+struct GrainiacParams {
     #[persist = "editor-state"]
     editor_state: Arc<ViziaState>,
 
     #[nested(array, group = "instances")]
-    instances: [InstanceParams; 4],
+    instances: [InstanceParams; INSTANCE_NUM],
 }
 
-struct GrainiacPlugin {
-    params: Arc<GrainiacPluginParams>,
-    sampler: Sampler,
-    draw_data: Arc<Output<Vec<DrawData>>>,
-}
-
-impl Default for GrainiacPlugin {
+impl Default for Grainiac {
     fn default() -> Self {
-        let (sampler, draw_data) = Sampler::new(48000.0);
+        let (sampler, buf_output) = Sampler::new(48000.0);
 
         Self {
-            params: Arc::new(GrainiacPluginParams::default()),
+            params: Arc::new(GrainiacParams::default()),
             sampler,
-            draw_data: Arc::new(draw_data),
+            buf_output: Arc::new(Mutex::new(buf_output)),
         }
     }
 }
 
-impl Default for GrainiacPluginParams {
+impl Default for GrainiacParams {
     fn default() -> Self {
         Self {
             editor_state: editor::default_state(),
-            instances: [(); 4].map(|_| InstanceParams::new()),
+            instances: [(); INSTANCE_NUM].map(|_| InstanceParams::new()),
         }
     }
 }
 
-impl Plugin for GrainiacPlugin {
+impl Plugin for Grainiac {
     const NAME: &'static str = "Grainiac";
-    const VENDOR: &'static str = "Christian Grothe";
+    const VENDOR: &'static str = "Timerift";
     const URL: &'static str = env!("CARGO_PKG_HOMEPAGE");
     const EMAIL: &'static str = "christian.grothe@posteo.de";
 
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+    // The first audio IO layout is used as the default. The other layouts may be selected either
+    // explicitly or automatically by the host or the user depending on the plugin API/backend.
     const AUDIO_IO_LAYOUTS: &'static [AudioIOLayout] = &[AudioIOLayout {
         main_input_channels: NonZeroU32::new(2),
         main_output_channels: NonZeroU32::new(2),
@@ -159,19 +155,36 @@ impl Plugin for GrainiacPlugin {
         aux_input_ports: &[],
         aux_output_ports: &[],
 
+        // Individual ports and the layout as a whole can be named here. By default these names
+        // are generated as needed. This layout will be called 'Stereo', while a layout with
+        // only one input and output channel would be called 'Mono'.
         names: PortNames::const_default(),
     }];
 
-    const MIDI_INPUT: MidiConfig = MidiConfig::None;
+    const MIDI_INPUT: MidiConfig = MidiConfig::Basic;
     const MIDI_OUTPUT: MidiConfig = MidiConfig::None;
 
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
+    // If the plugin can send or receive SysEx messages, it can define a type to wrap around those
+    // messages here. The type implements the `SysExMessage` trait, which allows conversion to and
+    // from plain byte buffers.
     type SysExMessage = ();
+    // More advanced plugins can use this to run expensive background tasks. See the field's
+    // documentation for more information. `()` means that the plugin does not have any background
+    // tasks.
     type BackgroundTask = ();
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(
+            self.params.clone(),
+            self.params.editor_state.clone(),
+            self.buf_output.clone(),
+        )
     }
 
     fn initialize(
@@ -180,24 +193,22 @@ impl Plugin for GrainiacPlugin {
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
+        // Resize buffers and perform other potentially expensive initialization operations here.
+        // The `reset()` function is always called right after this function. You can remove this
+        // function if you do not need it.
         true
     }
 
-    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
-        editor::create(
-            self.params.clone(),
-            self.params.editor_state.clone(),
-            self.draw_data.clone(),
-        )
+    fn reset(&mut self) {
+        // Reset buffers and envelopes here. This can be called from the audio thread and may not
+        // allocate. You can remove this function if you do not need it.
     }
-
-    fn reset(&mut self) {}
 
     fn process(
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext<Self>,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         for (i, instance) in self.params.instances.iter().enumerate() {
             self.sampler.set_loop_start(i, instance.loop_start.value());
@@ -216,13 +227,70 @@ impl Plugin for GrainiacPlugin {
             self.sampler.set_spread(i, instance.spread.value());
         }
 
+        let mut next_event = context.next_event();
+
+        while let Some(event) = next_event {
+            match event {
+                NoteEvent::NoteOn { note, .. } => self.sampler.note_on(note as usize),
+                NoteEvent::NoteOff { note, .. } => self.sampler.note_off(note as usize),
+                NoteEvent::MidiCC { cc, value, .. } => match cc {
+                    22 => {
+                        if value > 0.0 {
+                            self.sampler.record(0)
+                        }
+                    }
+                    23 => {
+                        if value > 0.0 {
+                            self.sampler.record(1)
+                        }
+                    }
+                    24 => {
+                        if value > 0.0 {
+                            self.sampler.record(2)
+                        }
+                    }
+                    25 => {
+                        if value > 0.0 {
+                            self.sampler.record(3)
+                        }
+                    }
+                    26 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(0)
+                        }
+                    }
+                    27 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(1)
+                        }
+                    }
+                    28 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(2)
+                        }
+                    }
+                    29 => {
+                        if value > 0.0 {
+                            self.sampler.toggle_hold(3)
+                        }
+                    }
+                    _ => {
+                        nih_plug::nih_log!("{:?}", event)
+                    }
+                },
+                _ => {
+                    nih_plug::nih_log!("{:?}", event)
+                }
+            }
+            next_event = context.next_event();
+        }
+
         for channels in buffer.iter_samples() {
             let mut sample_channels = channels.into_iter();
             let stereo_slice = (
                 sample_channels.next().unwrap(),
                 sample_channels.next().unwrap(),
             );
-
             self.sampler.render(stereo_slice);
         }
 
@@ -230,9 +298,9 @@ impl Plugin for GrainiacPlugin {
     }
 }
 
-impl ClapPlugin for GrainiacPlugin {
-    const CLAP_ID: &'static str = "com.christian-grothe.grainiac";
-    const CLAP_DESCRIPTION: Option<&'static str> = Some("A granular sampler");
+impl ClapPlugin for Grainiac {
+    const CLAP_ID: &'static str = "com.your-domain.grainiac";
+    const CLAP_DESCRIPTION: Option<&'static str> = Some("A granular sampler instrument");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
 
@@ -240,12 +308,15 @@ impl ClapPlugin for GrainiacPlugin {
     const CLAP_FEATURES: &'static [ClapFeature] = &[ClapFeature::AudioEffect, ClapFeature::Stereo];
 }
 
-impl Vst3Plugin for GrainiacPlugin {
-    const VST3_CLASS_ID: [u8; 16] = *b"123grainiac12345";
+impl Vst3Plugin for Grainiac {
+    const VST3_CLASS_ID: [u8; 16] = *b"Exactly16Chars!!";
 
-    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
-        &[Vst3SubCategory::Instrument];
+    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
+        Vst3SubCategory::Instrument,
+        Vst3SubCategory::Sampler,
+        Vst3SubCategory::Stereo,
+    ];
 }
 
-nih_export_clap!(GrainiacPlugin);
-nih_export_vst3!(GrainiacPlugin);
+nih_export_clap!(Grainiac);
+nih_export_vst3!(Grainiac);

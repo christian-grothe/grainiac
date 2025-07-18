@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use nih_plug_vizia::vizia::{
     context::{Context, DrawContext},
@@ -9,14 +9,14 @@ use nih_plug_vizia::vizia::{
 use grainiac_core::{DrawData, Output};
 
 pub struct Waveform {
-    draw_data: Arc<Output<Vec<DrawData>>>,
+    draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
     index: usize,
 }
 
 impl Waveform {
     pub fn new(
         cx: &mut Context,
-        draw_data: Arc<Output<Vec<DrawData>>>,
+        draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
         index: usize,
     ) -> Handle<Self> {
         Self { draw_data, index }.build(cx, |_cx| ())
@@ -33,13 +33,12 @@ impl View for Waveform {
             return;
         }
 
-        let draw_data = self.draw_data.peek_output_buffer();
-        let buffer = draw_data[self.index].buffer.clone();
-        let voice_data = draw_data[self.index].grain_data.clone();
-        let loop_area = (
-            draw_data[self.index].state.loop_start,
-            draw_data[self.index].state.loop_length,
-        );
+        let mut draw_data = self.draw_data.lock().unwrap();
+        let buffer = draw_data.read()[self.index].buffer.clone();
+        let grain_data = draw_data.read()[self.index].grain_data.clone();
+        let loop_start = draw_data.read()[self.index].state.loop_start.clone();
+        let loop_length = draw_data.read()[self.index].state.loop_length.clone();
+        let loop_area = (loop_start, loop_start + loop_length);
 
         let paint = Paint::color(Color::rgb(200, 200, 200));
         let mut path = Path::new();
@@ -57,7 +56,7 @@ impl View for Waveform {
 
         let paint = Paint::color(Color::hex("#F6EABE"));
 
-        voice_data.iter().for_each(|data| {
+        grain_data.iter().for_each(|data| {
             if let Some(data) = data {
                 let mut path = Path::new();
                 let y = (data.2 + 1.0) / 2.0;
