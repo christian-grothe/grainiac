@@ -152,7 +152,7 @@ impl Sampler {
     fn get_draw_data(&mut self) {
         self.draw_data_update_count += 1;
         if self.draw_data_update_count >= self.sample_rate as usize / 33 {
-            let draw_data = self.draw_data.input_buffer();
+            let draw_data = self.draw_data.input_buffer_mut();
             for (i, instance) in self.instances.iter().enumerate() {
                 draw_data[i].grain_data.fill(None);
                 for (index, data) in instance.grain_data.iter().enumerate() {

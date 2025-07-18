@@ -1,0 +1,28 @@
+[package]
+name = "grainiac_plugin"
+version = "0.1.0"
+edition = "2021"
+authors = ["Christian Grothe <christian.grothe@posteo.de>"]
+license = "GPL-3.0-or-later"
+homepage = "https://christian-grothe.com"
+description = "A granular sampler"
+
+[workspace]
+members = ["xtask"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs"] }
+grainiac_core = { path = "../grainiac_core" }
+nih_plug_vizia = { git = "https://github.com/robbert-vdh/nih-plug.git" }
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = "none"

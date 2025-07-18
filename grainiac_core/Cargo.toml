@@ -5,9 +5,8 @@ edition = "2021"
 
 [dependencies]
 fastrand = "2.3.0"
-rand = "0.8.5"
 rtsan-standalone = "0.1.1"
-triple_buffer = "8.0.0"
+triple_buffer = "8.1.1"
 
 [features]
 rtsan = ["rtsan-standalone/enable"]
