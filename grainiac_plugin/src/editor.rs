@@ -1,13 +1,16 @@
 use nih_plug::nih_error;
 use nih_plug::prelude::Editor;
 use nih_plug_vizia::vizia::prelude::*;
-use nih_plug_vizia::widgets::*;
 use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
 use std::sync::{Arc, Mutex};
 
+use crate::editor::widgets::dial::Dial;
+use crate::editor::widgets::select::Select;
+use crate::editor::widgets::waveform::Waveform;
 use crate::GrainiacParams;
 use grainiac_core::{DrawData, Output, INSTANCE_NUM};
-mod waveform;
+
+mod widgets;
 
 #[derive(Lens)]
 struct Data {
@@ -67,7 +70,7 @@ fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>
 
 fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
     HStack::new(cx, |cx| {
-        waveform::Waveform::new(cx, draw_data.clone(), index);
+        Waveform::new(cx, draw_data.clone(), index);
     })
     .left(Pixels(15.0))
     .right(Pixels(15.0))
@@ -77,85 +80,73 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
 }
 
 fn instance(cx: &mut Context, index: usize) {
-    VStack::new(cx, |cx| {
-        HStack::new(cx, |cx| {
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Loop Start");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].loop_start
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Loop Length");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].loop_length
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+    HStack::new(cx, |cx| {
+        Select::new(cx, "grain dir", 3, Data::params, move |params| {
+            &params.instances[index].g_dir
+        });
+        Select::new(cx, "play dir", 3, Data::params, move |params| {
+            &params.instances[index].p_dir
+        });
+    });
+
+    HStack::new(cx, |cx| {
+        VStack::new(cx, |cx| {
+            Label::new(cx, "loop start").class("center");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].loop_start
             });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Play Speed");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].play_speed
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Density");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].density
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+            Label::new(cx, "loop length");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].loop_length
             });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Spray");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].spray
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Grain Length");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].grain_length
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+        });
+        VStack::new(cx, |cx| {
+            Label::new(cx, "dens");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].density
             });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Attack");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].attack
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Release");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].release
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+            Label::new(cx, "length");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].grain_length
             });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Pan");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].pan
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Spread");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].spread
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+        })
+        .class("center");
+        VStack::new(cx, |cx| {
+            Label::new(cx, "speed");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].play_speed
             });
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Pitch");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].pitch
-                })
-                .bottom(Pixels(10.0))
-                .set_style(ParamSliderStyle::FromLeft);
-                Label::new(cx, "Gain");
-                ParamSlider::new(cx, Data::params, move |params| {
-                    &params.instances[index].gain
-                })
-                .set_style(ParamSliderStyle::FromLeft);
+            Label::new(cx, "spray");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].spray
+            });
+        });
+        VStack::new(cx, |cx| {
+            Label::new(cx, "pan");
+            Dial::new(cx, Data::params, move |params| &params.instances[index].pan);
+            Label::new(cx, "spread");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].spread
+            });
+        });
+        VStack::new(cx, |cx| {
+            Label::new(cx, "att");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].attack
+            });
+            Label::new(cx, "rel");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].release
+            });
+        });
+        VStack::new(cx, |cx| {
+            Label::new(cx, "pitch");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].pitch
+            });
+            Label::new(cx, "gain");
+            Dial::new(cx, Data::params, move |params| {
+                &params.instances[index].gain
             });
         });
     })

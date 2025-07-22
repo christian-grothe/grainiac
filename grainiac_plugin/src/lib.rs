@@ -11,6 +11,41 @@ pub struct Grainiac {
     buf_output: Arc<Mutex<Output<Vec<DrawData>>>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayDirection {
+    Forward,
+    Backward,
+    BackAndForth,
+}
+
+impl Enum for PlayDirection {
+    fn to_index(self) -> usize {
+        match self {
+            PlayDirection::Forward => 0,
+            PlayDirection::Backward => 1,
+            PlayDirection::BackAndForth => 2,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        if index == 0 {
+            PlayDirection::Forward
+        } else if index == 1 {
+            PlayDirection::Backward
+        } else {
+            PlayDirection::BackAndForth
+        }
+    }
+
+    fn ids() -> Option<&'static [&'static str]> {
+        Some(&["forward", "backward", "back_and_forth"])
+    }
+
+    fn variants() -> &'static [&'static str] {
+        &[">>", "<<", "><"]
+    }
+}
+
 #[derive(Params)]
 struct InstanceParams {
     #[id = "loop_start"]
@@ -37,7 +72,12 @@ struct InstanceParams {
     pub spread: FloatParam,
     #[id = "pan"]
     pub pan: FloatParam,
-
+    #[id = "g_dir"]
+    pub g_dir: EnumParam<PlayDirection>,
+    #[id = "p_dir"]
+    pub p_dir: EnumParam<PlayDirection>,
+    #[id = "hold"]
+    pub hold: BoolParam,
 }
 
 impl InstanceParams {
@@ -99,11 +139,24 @@ impl InstanceParams {
             gain: FloatParam::new("Gain", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
-            pan: FloatParam::new("Pan", 0.0, FloatRange::Linear { min: -1.0, max: 1.0 })
-                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+            pan: FloatParam::new(
+                "Pan",
+                0.0,
+                FloatRange::Linear {
+                    min: -1.0,
+                    max: 1.0,
+                },
+            )
+            .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             spread: FloatParam::new("Spread", 0.5, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),
+
+            g_dir: EnumParam::new("Play Direction", PlayDirection::Forward),
+
+            p_dir: EnumParam::new("Play Direction", PlayDirection::Forward),
+
+            hold: BoolParam::new("Hold", false),
         }
     }
 }
@@ -222,7 +275,8 @@ impl Plugin for Grainiac {
             self.sampler.set_attack(i, instance.attack.value());
             self.sampler.set_release(i, instance.release.value());
             self.sampler.set_gain(i, instance.gain.value());
-            self.sampler.set_global_pitch(i, instance.pitch.value() as i8);
+            self.sampler
+                .set_global_pitch(i, instance.pitch.value() as i8);
             self.sampler.set_pan(i, instance.pan.value());
             self.sampler.set_spread(i, instance.spread.value());
         }

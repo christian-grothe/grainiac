@@ -27,6 +27,7 @@ impl View for Waveform {
     fn element(&self) -> Option<&'static str> {
         Some("waveform")
     }
+
     fn draw(&self, cx: &mut DrawContext, canvas: &mut Canvas) {
         let bounds = cx.bounds();
         if bounds.w == 0.0 || bounds.h == 0.0 {
