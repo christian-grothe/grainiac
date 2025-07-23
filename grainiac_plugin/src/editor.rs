@@ -20,7 +20,7 @@ struct Data {
 impl Model for Data {}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (800, 1000))
+    ViziaState::new(|| (800, 800))
 }
 
 pub(crate) fn create(
@@ -70,6 +70,7 @@ fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>
 
 fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
     HStack::new(cx, |cx| {
+        Button::new(cx, |cx| {}, |cx| Label::new(cx, "open"));
         Waveform::new(cx, draw_data.clone(), index);
     })
     .left(Pixels(15.0))
@@ -83,11 +84,19 @@ fn instance(cx: &mut Context, index: usize) {
     HStack::new(cx, |cx| {
         Select::new(cx, "grain dir", 3, Data::params, move |params| {
             &params.instances[index].g_dir
-        });
+        })
+        .class("button")
+        .width(Units::Auto)
+        .left(Pixels(15.0))
+        .right(Pixels(15.0));
+
         Select::new(cx, "play dir", 3, Data::params, move |params| {
             &params.instances[index].p_dir
-        });
-    });
+        })
+        .class("button")
+        .width(Units::Auto);
+    })
+    .height(Pixels(30.0));
 
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {

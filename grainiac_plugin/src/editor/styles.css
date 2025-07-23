@@ -1,18 +1,27 @@
 :root {
-  background-color: #242424;
-  color: #e6e6e6;
-  font-size: 14;
-  font-weight: light;
+  background-color: #222831;
+  color: #eeeeee;
+  font-size: 18;
+  font-weight: normal;
 }
 
 label {
   text-align: center;
 }
 
-.center {
-  text-align: center;
+.border {
+  border: 2px solid #e6e6e6;
 }
 
-.waveform {
-  border: 2px solid #e6e6e6;
+.button {
+  font-weight: bold;
+  border-radius: 5px;
+  background-color: transparent;
+  transition: background-color 0.5s;
+}
+
+.button:hover {
+  background-color: rgb(100, 100, 100);
+  border-radius: 5px;
+  transition: background-color 0.1s;
 }

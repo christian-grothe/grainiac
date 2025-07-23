@@ -2,17 +2,17 @@ use nih_plug::params::Param;
 use nih_plug_vizia::{
     vizia::{
         binding::Lens,
-        context::{Context, EmitContext, EventContext},
+        context::{Context, EventContext},
         events::Event,
+        input::MouseButton,
+        layout::Units::{self},
+        modifiers::{LayoutModifiers, StyleModifiers},
         view::{Handle, View},
-        views::{Button, HStack, Label},
+        views::{HStack, Label},
+        window::WindowEvent,
     },
     widgets::param_base::ParamWidgetBase,
 };
-
-enum Message {
-    Click,
-}
 
 pub struct Select {
     param_base: ParamWidgetBase,
@@ -25,15 +25,18 @@ impl View for Select {
     }
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|message_event, _meta| match message_event {
-            Message::Click => {
+        event.map(|window_event, _meta| match window_event {
+            WindowEvent::MouseDown(MouseButton::Left) => {
                 let current = self.param_base.unmodulated_normalized_value();
                 let next = current + 1.0 / self.variants as f32;
                 let new = if next > 1.0 { 0.0 } else { next };
                 self.param_base.begin_set_parameter(cx);
                 self.param_base.set_normalized_value(cx, new);
+            }
+            WindowEvent::MouseUp(MouseButton::Left) => {
                 self.param_base.end_set_parameter(cx);
             }
+            _ => {}
         });
     }
 }
@@ -62,15 +65,11 @@ impl Select {
                 let display_value_lens = param_data.make_lens(|param| {
                     param.normalized_value_to_string(param.unmodulated_normalized_value(), true)
                 });
-
                 HStack::new(cx, |cx| {
-                    Label::new(cx, label);
-                    Button::new(
-                        cx,
-                        |cx| cx.emit(Message::Click),
-                        |cx| Label::new(cx, display_value_lens),
-                    );
-                });
+                    Label::new(cx, &format!("{}:  ", label));
+                    Label::new(cx, display_value_lens).class("bold");
+                })
+                .width(Units::Auto);
             }),
         )
     }
