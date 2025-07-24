@@ -1,7 +1,11 @@
+use crossbeam::channel::{bounded, Receiver, Sender};
 use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 mod editor;
 
@@ -9,6 +13,12 @@ pub struct Grainiac {
     params: Arc<GrainiacParams>,
     sampler: Sampler,
     buf_output: Arc<Mutex<Output<Vec<DrawData>>>>,
+    sender: Arc<Sender<FileMessage>>,
+    receiver: Receiver<FileMessage>,
+}
+
+pub enum FileMessage {
+    OpenFile(PathBuf, usize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -173,11 +183,14 @@ struct GrainiacParams {
 impl Default for Grainiac {
     fn default() -> Self {
         let (sampler, buf_output) = Sampler::new(48000.0);
+        let (sender, receiver) = bounded(1);
 
         Self {
             params: Arc::new(GrainiacParams::default()),
             sampler,
             buf_output: Arc::new(Mutex::new(buf_output)),
+            sender: Arc::new(sender),
+            receiver,
         }
     }
 }
@@ -237,6 +250,7 @@ impl Plugin for Grainiac {
             self.params.clone(),
             self.params.editor_state.clone(),
             self.buf_output.clone(),
+            self.sender.clone(),
         )
     }
 
@@ -282,6 +296,18 @@ impl Plugin for Grainiac {
         }
 
         let mut next_event = context.next_event();
+
+        if let Ok(msg) = self.receiver.try_recv() {
+            match msg {
+                FileMessage::OpenFile(path, index) => {
+                    if let Ok(mut reader) = hound::WavReader::open(path) {
+                        let samples: Vec<f32> =
+                            reader.samples::<f32>().map(|s| s.unwrap()).collect();
+                        self.sampler.load_bufs(samples);
+                    };
+                }
+            }
+        }
 
         while let Some(event) = next_event {
             match event {

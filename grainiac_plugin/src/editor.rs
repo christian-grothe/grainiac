@@ -1,13 +1,15 @@
+use crossbeam::channel::Sender;
 use nih_plug::nih_error;
 use nih_plug::prelude::Editor;
 use nih_plug_vizia::vizia::prelude::*;
 use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
+use rfd::FileDialog;
 use std::sync::{Arc, Mutex};
 
 use crate::editor::widgets::dial::Dial;
 use crate::editor::widgets::select::Select;
 use crate::editor::widgets::waveform::Waveform;
-use crate::GrainiacParams;
+use crate::{FileMessage, GrainiacParams};
 use grainiac_core::{DrawData, Output, INSTANCE_NUM};
 
 mod widgets;
@@ -15,9 +17,37 @@ mod widgets;
 #[derive(Lens)]
 struct Data {
     params: Arc<GrainiacParams>,
+    sender: Arc<Sender<FileMessage>>,
 }
 
-impl Model for Data {}
+impl Data {
+    fn open_file_dialog(&self, index: usize) {
+        let file = FileDialog::new()
+            .add_filter("audio", &["wav"])
+            .set_directory("/")
+            .pick_file();
+
+        if let Some(file) = file {
+            self.sender
+                .send(FileMessage::OpenFile(file, index))
+                .unwrap();
+        }
+    }
+}
+
+enum Message {
+    OpenFileDialog(usize),
+}
+
+impl Model for Data {
+    fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
+        event.map(|data_event, _meta| match data_event {
+            Message::OpenFileDialog(index) => {
+                self.open_file_dialog(*index);
+            }
+        });
+    }
+}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
     ViziaState::new(|| (800, 800))
@@ -27,6 +57,7 @@ pub(crate) fn create(
     params: Arc<GrainiacParams>,
     editor_state: Arc<ViziaState>,
     draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
+    sender: Arc<Sender<FileMessage>>,
 ) -> Option<Box<dyn Editor>> {
     create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
         assets::register_noto_sans_light(cx);
@@ -38,6 +69,7 @@ pub(crate) fn create(
 
         Data {
             params: params.clone(),
+            sender: sender.clone(),
         }
         .build(cx);
 
@@ -69,8 +101,20 @@ fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>
 }
 
 fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
-    HStack::new(cx, |cx| {
-        Button::new(cx, |cx| {}, |cx| Label::new(cx, "open"));
+    ZStack::new(cx, |cx| {
+        Button::new(
+            cx,
+            move |ex| {
+                ex.emit(Message::OpenFileDialog(index));
+            },
+            |cx| Label::new(cx, "open"),
+        )
+        .position_type(PositionType::SelfDirected)
+        .z_index(10)
+        .color(Color::white())
+        .border_width(Pixels(0.0))
+        .background_color(Color::rgb(150, 100, 100));
+
         Waveform::new(cx, draw_data.clone(), index);
     })
     .left(Pixels(15.0))
@@ -100,7 +144,7 @@ fn instance(cx: &mut Context, index: usize) {
 
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
-            Label::new(cx, "loop start").class("center");
+            Label::new(cx, "loop start").text_align(TextAlign::Center);
             Dial::new(cx, Data::params, move |params| {
                 &params.instances[index].loop_start
             });
@@ -108,7 +152,9 @@ fn instance(cx: &mut Context, index: usize) {
             Dial::new(cx, Data::params, move |params| {
                 &params.instances[index].loop_length
             });
-        });
+        })
+        .text_align(TextAlign::Center);
+
         VStack::new(cx, |cx| {
             Label::new(cx, "dens");
             Dial::new(cx, Data::params, move |params| {
@@ -118,8 +164,8 @@ fn instance(cx: &mut Context, index: usize) {
             Dial::new(cx, Data::params, move |params| {
                 &params.instances[index].grain_length
             });
-        })
-        .class("center");
+        });
+
         VStack::new(cx, |cx| {
             Label::new(cx, "speed");
             Dial::new(cx, Data::params, move |params| {
@@ -130,6 +176,7 @@ fn instance(cx: &mut Context, index: usize) {
                 &params.instances[index].spray
             });
         });
+
         VStack::new(cx, |cx| {
             Label::new(cx, "pan");
             Dial::new(cx, Data::params, move |params| &params.instances[index].pan);
@@ -138,6 +185,7 @@ fn instance(cx: &mut Context, index: usize) {
                 &params.instances[index].spread
             });
         });
+
         VStack::new(cx, |cx| {
             Label::new(cx, "att");
             Dial::new(cx, Data::params, move |params| {
@@ -148,6 +196,7 @@ fn instance(cx: &mut Context, index: usize) {
                 &params.instances[index].release
             });
         });
+
         VStack::new(cx, |cx| {
             Label::new(cx, "pitch");
             Dial::new(cx, Data::params, move |params| {
@@ -159,6 +208,7 @@ fn instance(cx: &mut Context, index: usize) {
             });
         });
     })
+    .text_align(TextAlign::Center)
     .left(Pixels(15.0))
     .right(Pixels(15.0));
 }

@@ -77,7 +77,8 @@ impl View for Dial {
         let start_angle = PI * 0.75;
         let end_angle = PI * 2.25;
 
-        let mut paint = Paint::color(Color::hex("DA6C6C"));
+        //let mut paint = Paint::color(Color::hex("DA6C6C"));
+        let mut paint = Paint::color(Color::rgb(150, 100, 100));
         let mut path = Path::new();
 
         paint.set_line_width(4.0);
@@ -105,14 +106,7 @@ impl View for Dial {
         paint.set_line_width(1.0);
 
         let mut path = Path::new();
-        path.arc(
-            center_x,
-            center_y,
-            radius,
-            angle,
-            end_angle,
-            Solidity::Hole,
-        );
+        path.arc(center_x, center_y, radius, angle, end_angle, Solidity::Hole);
 
         canvas.stroke_path(&path, &paint);
     }
