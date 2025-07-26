@@ -33,10 +33,20 @@ impl View for Dial {
                 self.is_clicked = true;
                 // Store the initial mouse position when starting to drag
                 self.last_mouse_y = cx.mouse().cursory;
+                self.param_base.begin_set_parameter(cx);
             }
             WindowEvent::MouseUp(MouseButton::Left) => {
                 cx.release();
+
+                self.param_base.end_set_parameter(cx);
                 self.is_clicked = false;
+            }
+            WindowEvent::MouseDoubleClick(MouseButton::Left) => {
+                let default_val = self.param_base.default_normalized_value();
+
+                self.param_base.begin_set_parameter(cx);
+                self.param_base.set_normalized_value(cx, default_val);
+                self.param_base.end_set_parameter(cx);
             }
             WindowEvent::MouseMove(_x, y) => {
                 if self.is_clicked {

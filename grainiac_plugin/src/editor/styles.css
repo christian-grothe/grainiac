@@ -1,8 +1,7 @@
 :root {
-  background-color: #222831;
+  background-color: #113f67;
   color: #eeeeee;
   font-size: 18;
-  font-weight: normal;
 }
 
 label {
@@ -10,7 +9,7 @@ label {
 }
 
 .border {
-  border: 2px solid #e6e6e6;
+  border: 1px solid white;
 }
 
 .button {

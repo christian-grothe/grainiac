@@ -82,9 +82,11 @@ pub(crate) fn create(
 fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
         Label::new(cx, "Grainiac")
-            .font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
-            .font_weight(FontWeightKeyword::Thin)
-            .font_size(25.0);
+            //.font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
+            //.font_weight(FontWeightKeyword::Thin)
+            .width(Stretch(1.0))
+            .font_size(25.0)
+            .text_align(TextAlign::Right);
     })
     .left(Pixels(15.0))
     .top(Pixels(10.0))
@@ -143,7 +145,9 @@ fn instance(cx: &mut Context, index: usize) {
 
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
-            Label::new(cx, "loop start").text_align(TextAlign::Center);
+            Label::new(cx, "loop start")
+                .text_align(TextAlign::Center)
+                .width(Stretch(1.0));
             Dial::new(cx, Data::params, move |params| {
                 &params.instances[index].loop_start
             });
