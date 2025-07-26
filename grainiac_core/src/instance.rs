@@ -139,8 +139,6 @@ impl Instance {
 
     pub fn load_audio(&mut self, samples: Vec<f32>) {
         let sample_num = samples.len();
-        println!("sample_num: {}", sample_num);
-        println!("max_buffer_size: {}", self.max_buffer_size);
 
         if sample_num <= self.max_buffer_size {
             for voice in self.voices.iter_mut() {

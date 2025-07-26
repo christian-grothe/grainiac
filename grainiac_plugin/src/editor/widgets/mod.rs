@@ -1,4 +1,4 @@
 pub mod dial;
-pub mod waveform;
+mod dial_base;
 pub mod select;
-
+pub mod waveform;

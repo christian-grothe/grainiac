@@ -49,7 +49,7 @@ impl Model for Data {
 }
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (800, 800))
+    ViziaState::new(|| (800, 900))
 }
 
 pub(crate) fn create(
@@ -122,6 +122,7 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
     .right(Pixels(15.0))
     .top(Pixels(15.0))
     .bottom(Pixels(25.0))
+    .height(Pixels(100.0))
     .class("waveform");
 }
 
@@ -145,68 +146,56 @@ fn instance(cx: &mut Context, index: usize) {
 
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
-            Label::new(cx, "loop start")
-                .text_align(TextAlign::Center)
-                .width(Stretch(1.0));
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "loop start", Data::params, move |params| {
                 &params.instances[index].loop_start
             });
-            Label::new(cx, "loop length");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "loop end", Data::params, move |params| {
                 &params.instances[index].loop_length
             });
         })
         .text_align(TextAlign::Center);
 
         VStack::new(cx, |cx| {
-            Label::new(cx, "dens");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "dens", Data::params, move |params| {
                 &params.instances[index].density
             });
-            Label::new(cx, "length");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "grain_length", Data::params, move |params| {
                 &params.instances[index].grain_length
             });
         });
 
         VStack::new(cx, |cx| {
-            Label::new(cx, "speed");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "play speed", Data::params, move |params| {
                 &params.instances[index].play_speed
             });
-            Label::new(cx, "spray");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "spray", Data::params, move |params| {
                 &params.instances[index].spray
             });
         });
 
         VStack::new(cx, |cx| {
-            Label::new(cx, "pan");
-            Dial::new(cx, Data::params, move |params| &params.instances[index].pan);
-            Label::new(cx, "spread");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "pan", Data::params, move |params| {
+                &params.instances[index].pan
+            });
+            Dial::new(cx, "spread", Data::params, move |params| {
                 &params.instances[index].spread
             });
         });
 
         VStack::new(cx, |cx| {
-            Label::new(cx, "att");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "att", Data::params, move |params| {
                 &params.instances[index].attack
             });
-            Label::new(cx, "rel");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "rel", Data::params, move |params| {
                 &params.instances[index].release
             });
         });
 
         VStack::new(cx, |cx| {
-            Label::new(cx, "pitch");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "pitch", Data::params, move |params| {
                 &params.instances[index].pitch
             });
-            Label::new(cx, "gain");
-            Dial::new(cx, Data::params, move |params| {
+            Dial::new(cx, "gain", Data::params, move |params| {
                 &params.instances[index].gain
             });
         });
