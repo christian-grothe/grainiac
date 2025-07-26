@@ -2,8 +2,9 @@ use rtsan_standalone::nonblocking;
 pub use triple_buffer::{triple_buffer, Input, Output};
 use voice::PlayDirection;
 
+use crate::constants::BUFFER_SIZE_SECONDS_RECORD;
 pub use crate::{
-    constants::{BAR_NUM, BUFFER_SIZE_SECONDS, GRAIN_NUM, INSTANCE_NUM, VOICE_NUM},
+    constants::{BAR_NUM, GRAIN_NUM, INSTANCE_NUM, VOICE_NUM},
     instance::{Instance, Mode},
 };
 
@@ -195,16 +196,23 @@ impl Sampler {
     }
 
     pub fn load_bufs(&mut self, bufs: Vec<f32>) {
-        let chunk_size = (BUFFER_SIZE_SECONDS * self.sample_rate) as usize;
+        let chunk_size = (BUFFER_SIZE_SECONDS_RECORD * self.sample_rate) as usize;
         let chunks = bufs.chunks(chunk_size);
 
         for (instance, chunk) in self.instances.iter_mut().zip(chunks) {
-            instance.buffer = chunk.to_vec();
+            //instance.buffer = chunk.to_vec();
+            instance.buffer.copy_from_slice(chunk);
 
             instance.buffer_to_draw.reset();
             for sample in instance.buffer.iter() {
                 instance.buffer_to_draw.update(*sample);
             }
+        }
+    }
+
+    pub fn load_buf(&mut self, buf: Vec<f32>, index: usize) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            instance.load_audio(buf);
         }
     }
 
@@ -400,53 +408,5 @@ impl Sampler {
                 voice.set_pan(value);
             }
         }
-    }
-}
-
-pub struct BufferToDraw {
-    buffer: Vec<f32>,
-    samples_per_bar: usize,
-    sample_counter: usize,
-    current_bar: usize,
-    sample_sum: f32,
-}
-
-impl BufferToDraw {
-    fn new(bars: usize, original_size: usize) -> Self {
-        Self {
-            buffer: vec![0.0; bars],
-            samples_per_bar: (original_size as f32 / bars as f32) as usize,
-            sample_counter: 0,
-            current_bar: 0,
-            sample_sum: 0.0,
-        }
-    }
-
-    fn update(&mut self, mut sample: f32) {
-        let threshold = 0.35;
-        let ratio = 3.0;
-
-        if sample < threshold {
-            sample *= ratio;
-        }
-
-        self.sample_sum += sample * sample;
-        self.sample_counter += 1;
-
-        if self.sample_counter >= self.samples_per_bar {
-            let mean_square = self.sample_sum / self.samples_per_bar as f32;
-            self.buffer[self.current_bar] = mean_square.sqrt();
-
-            // Reset for next bar
-            self.sample_sum = 0.0;
-            self.sample_counter = 0;
-            self.current_bar += 1;
-        }
-    }
-
-    fn reset(&mut self) {
-        self.sample_sum = 0.0;
-        self.sample_counter = 0;
-        self.current_bar = 0;
     }
 }

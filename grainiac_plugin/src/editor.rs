@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use crate::editor::widgets::dial::Dial;
 use crate::editor::widgets::select::Select;
 use crate::editor::widgets::waveform::Waveform;
-use crate::{FileMessage, GrainiacParams};
+use crate::{utils, FileMessage, GrainiacParams};
 use grainiac_core::{DrawData, Output, INSTANCE_NUM};
 
 mod widgets;
@@ -27,24 +27,23 @@ impl Data {
             .set_directory("/")
             .pick_file();
 
-        if let Some(file) = file {
-            self.sender
-                .send(FileMessage::OpenFile(file, index))
-                .unwrap();
+        if let Some(path) = file {
+            if let Some(samples) = utils::AudioHandler::open(path) {
+                self.sender
+                    .send(FileMessage::LoadAudio(samples, index))
+                    .unwrap();
+            }
         }
     }
-}
-
-enum Message {
-    OpenFileDialog(usize),
 }
 
 impl Model for Data {
     fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
         event.map(|data_event, _meta| match data_event {
-            Message::OpenFileDialog(index) => {
+            FileMessage::OpenFileDialog(index) => {
                 self.open_file_dialog(*index);
             }
+            _ => {}
         });
     }
 }
@@ -105,7 +104,7 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
         Button::new(
             cx,
             move |ex| {
-                ex.emit(Message::OpenFileDialog(index));
+                ex.emit(FileMessage::OpenFileDialog(index));
             },
             |cx| Label::new(cx, "open"),
         )

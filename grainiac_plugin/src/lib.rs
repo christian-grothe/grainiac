@@ -2,12 +2,10 @@ use crossbeam::channel::{bounded, Receiver, Sender};
 use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 mod editor;
+mod utils;
 
 pub struct Grainiac {
     params: Arc<GrainiacParams>,
@@ -18,7 +16,8 @@ pub struct Grainiac {
 }
 
 pub enum FileMessage {
-    OpenFile(PathBuf, usize),
+    LoadAudio(Vec<f32>, usize),
+    OpenFileDialog(usize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,7 +74,7 @@ struct InstanceParams {
     #[id = "release"]
     pub release: FloatParam,
     #[id = "pitch"]
-    pub pitch: FloatParam,
+    pub pitch: IntParam,
     #[id = "gain"]
     pub gain: FloatParam,
     #[id = "spread"]
@@ -143,8 +142,7 @@ impl InstanceParams {
                 .with_value_to_string(formatters::v2s_f32_rounded(2))
                 .with_unit(" sec"),
 
-            pitch: FloatParam::new("Pitch", 1.0, FloatRange::Linear { min: 0.5, max: 2.0 })
-                .with_value_to_string(formatters::v2s_f32_rounded(2)),
+            pitch: IntParam::new("Pitch", 0, IntRange::Linear { min: -12, max: 12 }),
 
             gain: FloatParam::new("Gain", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),
@@ -299,13 +297,10 @@ impl Plugin for Grainiac {
 
         if let Ok(msg) = self.receiver.try_recv() {
             match msg {
-                FileMessage::OpenFile(path, index) => {
-                    if let Ok(mut reader) = hound::WavReader::open(path) {
-                        let samples: Vec<f32> =
-                            reader.samples::<f32>().map(|s| s.unwrap()).collect();
-                        self.sampler.load_bufs(samples);
-                    };
+                FileMessage::LoadAudio(samples, index) => {
+                    self.sampler.load_buf(samples, index);
                 }
+                _ => {}
             }
         }
 

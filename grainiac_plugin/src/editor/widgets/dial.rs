@@ -77,8 +77,7 @@ impl View for Dial {
         let start_angle = PI * 0.75;
         let end_angle = PI * 2.25;
 
-        //let mut paint = Paint::color(Color::hex("DA6C6C"));
-        let mut paint = Paint::color(Color::rgb(150, 100, 100));
+        let mut paint = Paint::color(Color::rgb(218, 108, 108));
         let mut path = Path::new();
 
         paint.set_line_width(4.0);

@@ -1,5 +1,5 @@
 use crate::{
-    constants::{BUFFER_SIZE_SECONDS, GRAIN_NUM},
+    constants::{BUFFER_SIZE_SECONDS_RECORD, GRAIN_NUM},
     grain::GrainData,
     instance::Mode,
 };
@@ -45,7 +45,7 @@ pub struct Voice {
 
 impl Voice {
     pub fn new(sample_rate: f32, loop_area: (f32, f32)) -> Self {
-        let buffersize = (BUFFER_SIZE_SECONDS * sample_rate) as usize;
+        let buffersize = (BUFFER_SIZE_SECONDS_RECORD * sample_rate) as usize;
         let inc = 1.0 / buffersize as f32;
         Self {
             grains: [Grain::default(); GRAIN_NUM],
@@ -71,6 +71,10 @@ impl Voice {
             spray: 0.0,
             pan: 0.0,
         }
+    }
+
+    pub fn resize(&mut self, buffersize: usize) {
+        self.buffersize = buffersize;
     }
 
     pub fn set_play_direction(&mut self, play_direction: PlayDirection) {
@@ -197,7 +201,7 @@ impl Voice {
                     let stereo_pos = self.pan + self.spread * ((fastrand::f32() * 2.0) - 1.0);
                     grain.activate(
                         (self.sample_rate * self.grain_length) as usize,
-                        pos,
+                        pos as f32,
                         self.pitch * main_pitch,
                         self.buffersize,
                         stereo_pos.clamp(-1.0, 1.0),
