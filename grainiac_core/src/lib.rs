@@ -160,7 +160,11 @@ impl Sampler {
                     if instance.state.gain == 0.0 {
                         break;
                     }
-                    draw_data[i].grain_data[index] = Some((data.pos, data.gain, data.stereo_pos));
+                    draw_data[i].grain_data[index] = Some((
+                        data.pos / instance.current_buffer_size as f32,
+                        data.gain,
+                        data.stereo_pos,
+                    ));
                 }
 
                 draw_data[i].play_heads.fill(None);

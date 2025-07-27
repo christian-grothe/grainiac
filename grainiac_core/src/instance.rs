@@ -170,11 +170,9 @@ impl Instance {
                 self.grain_data.extend(voice.render(self.state.mode));
 
                 if self.state.mode == Mode::Tape {
-                    let play_index_int =
-                        (voice.play_pos * self.current_buffer_size as f32) as usize;
+                    let play_index_int = voice.play_pos.floor() as usize;
                     let next_index = (play_index_int + 1) % self.current_buffer_size;
-                    let frac =
-                        voice.play_pos * self.current_buffer_size as f32 - play_index_int as f32;
+                    let frac = voice.play_pos - play_index_int as f32;
 
                     let next_sample = self.buffer[play_index_int] * (1.0 - frac as f32)
                         + self.buffer[next_index] * frac as f32;
@@ -186,9 +184,9 @@ impl Instance {
         }
 
         for grain_data in self.grain_data.iter() {
-            let play_index_int = (grain_data.pos * self.current_buffer_size as f32) as usize;
+            let play_index_int = grain_data.pos as usize;
             let next_index = (play_index_int + 1) % self.current_buffer_size;
-            let frac = grain_data.pos * self.current_buffer_size as f32 - play_index_int as f32;
+            let frac = grain_data.pos - play_index_int as f32;
 
             let left_gain = 0.5 * (1.0 - grain_data.stereo_pos);
             let right_gain = 0.5 * (1.0 + grain_data.stereo_pos);

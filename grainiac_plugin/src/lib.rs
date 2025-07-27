@@ -97,14 +97,14 @@ impl InstanceParams {
                 0.25,
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             loop_length: FloatParam::new(
                 "Loop End",
                 0.25,
                 FloatRange::Linear { min: 0.0, max: 1.0 },
             )
-            .with_value_to_string(formatters::v2s_f32_percentage(0)),
+            .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             play_speed: FloatParam::new(
                 "Play Speed",
@@ -124,7 +124,7 @@ impl InstanceParams {
             .with_value_to_string(formatters::v2s_f32_hz_then_khz(2)),
 
             spray: FloatParam::new("Spray", 0.0, FloatRange::Linear { min: 0.0, max: 1.0 })
-                .with_value_to_string(formatters::v2s_f32_percentage(0)),
+                .with_value_to_string(formatters::v2s_f32_rounded(2)),
 
             grain_length: FloatParam::new(
                 "Grain Length",
@@ -142,7 +142,8 @@ impl InstanceParams {
                 .with_value_to_string(formatters::v2s_f32_rounded(2))
                 .with_unit(" sec"),
 
-            pitch: IntParam::new("Pitch", 0, IntRange::Linear { min: -12, max: 12 }),
+            pitch: IntParam::new("Pitch", 0, IntRange::Linear { min: -12, max: 12 })
+                .with_unit(" st"),
 
             gain: FloatParam::new("Gain", 1.0, FloatRange::Linear { min: 0.0, max: 1.0 })
                 .with_value_to_string(formatters::v2s_f32_rounded(2)),

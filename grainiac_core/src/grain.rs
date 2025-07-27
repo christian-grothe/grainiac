@@ -16,7 +16,8 @@ pub struct Grain {
     length: usize,
     counter: usize,
     pos: f32,
-    inc: f32,
+    pitch: f32,
+    buffersize: usize,
     gain: f32,
     stereo_pos: f32,
     grain_direction: PlayDirection,
@@ -28,7 +29,7 @@ impl Grain {
         length: usize,
         start_pos: f32,
         pitch: f32,
-        buffer_size: usize,
+        buffersize: usize,
         stereo_pos: f32,
         grain_direction: PlayDirection,
     ) {
@@ -36,7 +37,8 @@ impl Grain {
         self.pos = start_pos;
         self.length = length;
         self.env.set_inc(1.0 / length as f32);
-        self.inc = pitch / buffer_size as f32;
+        self.pitch = pitch;
+        self.buffersize = buffersize;
         self.stereo_pos = stereo_pos;
         self.grain_direction = grain_direction;
     }
@@ -44,17 +46,17 @@ impl Grain {
     pub fn update(&mut self, gain: f32) -> GrainData {
         match self.grain_direction {
             PlayDirection::Forward => {
-                self.pos += self.inc;
+                self.pos += self.pitch;
 
-                if self.pos >= 1.0 {
+                if self.pos >= self.buffersize as f32 {
                     self.pos = 0.0;
                 }
             }
             PlayDirection::Backward => {
-                self.pos -= self.inc;
+                self.pos -= self.pitch;
 
                 if self.pos <= 0.0 {
-                    self.pos = 0.99;
+                    self.pos = self.buffersize as f32;
                 }
             }
         }
