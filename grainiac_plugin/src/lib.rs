@@ -292,6 +292,14 @@ impl Plugin for Grainiac {
                 .set_global_pitch(i, instance.pitch.value() as i8);
             self.sampler.set_pan(i, instance.pan.value());
             self.sampler.set_spread(i, instance.spread.value());
+            self.sampler.set_grain_dir_from_preset(
+                i,
+                (instance.g_dir.unmodulated_normalized_value() * 3.0) as u8,
+            );
+            self.sampler.set_play_dir_from_preset(
+                i,
+                (instance.p_dir.unmodulated_normalized_value() * 3.0) as u8,
+            );
         }
 
         let mut next_event = context.next_event();
