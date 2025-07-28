@@ -81,9 +81,11 @@ pub(crate) fn create(
 
 fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
+        Label::new(cx, "timerift.")
+            .width(Stretch(1.0))
+            .font_size(25.0)
+            .text_align(TextAlign::Left);
         Label::new(cx, "Grainiac")
-            //.font_family(vec![FamilyOwned::Name(String::from(assets::NOTO_SANS))])
-            //.font_weight(FontWeightKeyword::Thin)
             .width(Stretch(1.0))
             .font_size(25.0)
             .text_align(TextAlign::Right);
@@ -131,18 +133,17 @@ fn instance(cx: &mut Context, index: usize) {
         Select::new(cx, "grain dir", 3, Data::params, move |params| {
             &params.instances[index].g_dir
         })
-        .class("button")
-        .width(Units::Auto)
+        .width(Pixels(125.0))
         .left(Pixels(15.0))
         .right(Pixels(15.0));
 
         Select::new(cx, "play dir", 3, Data::params, move |params| {
             &params.instances[index].p_dir
         })
-        .class("button")
-        .width(Units::Auto);
+        .width(Pixels(125.0));
     })
-    .height(Pixels(30.0));
+    .height(Pixels(40.0))
+    .bottom(Pixels(10.0));
 
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
@@ -152,8 +153,7 @@ fn instance(cx: &mut Context, index: usize) {
             Dial::new(cx, "loop end", Data::params, move |params| {
                 &params.instances[index].loop_length
             });
-        })
-        .text_align(TextAlign::Center);
+        });
 
         VStack::new(cx, |cx| {
             Dial::new(cx, "dens", Data::params, move |params| {

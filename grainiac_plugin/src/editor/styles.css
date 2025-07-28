@@ -12,15 +12,18 @@ label {
   border: 1px solid white;
 }
 
-.button {
-  font-weight: bold;
-  border-radius: 5px;
-  background-color: transparent;
-  transition: background-color 0.5s;
+.bold {
+  font-size: bold;
 }
 
-/* .button:hover { */
-/*   background-color: rgb(100, 100, 100); */
-/*   border-radius: 5px; */
-/*   transition: background-color 0.1s; */
-/* } */
+.button {
+  border-radius: 5px;
+  background-color: rgb(150, 100, 100);
+  border-radius: 5px;
+  transition: background-color 0.25s;
+}
+
+.button:hover {
+  background-color: rgb(180, 100, 100);
+  transition: background-color 0.1s;
+}

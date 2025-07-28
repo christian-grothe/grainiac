@@ -1,3 +1,5 @@
+use std::{cmp::Ordering, ops::AddAssign};
+
 use crate::{
     constants::{BUFFER_SIZE_SECONDS_RECORD, GRAIN_NUM},
     grain::GrainData,
@@ -18,6 +20,34 @@ impl Default for PlayDirection {
     }
 }
 
+#[derive(Default)]
+pub struct PlayHead {
+    index: usize,
+    fraction: f32,
+}
+
+impl AddAssign<f32> for PlayHead {
+    fn add_assign(&mut self, rhs: f32) {
+        let val_int = rhs.floor();
+        let val_frac = rhs - val_int as f32;
+
+        self.index += val_int as usize;
+        self.fraction = val_frac;
+    }
+}
+
+impl PartialEq<usize> for PlayHead {
+    fn eq(&self, other: &usize) -> bool {
+        self.index == *other
+    }
+}
+
+impl PartialOrd<usize> for PlayHead {
+    fn partial_cmp(&self, other: &usize) -> Option<Ordering> {
+        self.index.partial_cmp(other)
+    }
+}
+
 pub struct Voice {
     pub env: Envelope,
     pub is_playing: bool,
@@ -31,6 +61,7 @@ pub struct Voice {
     grain_dircetion: PlayDirection,
     buffersize: usize,
     pub play_pos: f32,
+    pub play_head: PlayHead,
     speed: f32,
     sample_rate: f32,
     pitch: f32,
@@ -58,6 +89,7 @@ impl Voice {
             midi_note: 0,
             buffersize,
             play_pos: 0.25,
+            play_head: PlayHead::default(),
             loop_start: loop_area.0,
             loop_length: loop_area.1,
             speed,
@@ -130,10 +162,11 @@ impl Voice {
     }
 
     pub fn note_on(&mut self, midi_note: usize) {
+        let loop_start_abs = self.loop_start * self.buffersize as f32;
         self.is_playing = true;
         self.midi_note = midi_note;
         self.pitch = 2.0f32.powf((midi_note as f32 - 60.0) / 12.0);
-        self.play_pos = self.loop_start;
+        self.play_pos = loop_start_abs as f32;
         self.env.set_state(EnvelopeState::Attack);
     }
 
@@ -146,15 +179,15 @@ impl Voice {
     }
 
     pub fn render(&mut self, mode: Mode) -> Vec<GrainData> {
-        let loop_start_abs = self.loop_start * self.buffersize as f32;
+        let loop_start_abs = (self.loop_start * self.buffersize as f32) as f32;
         let loop_end_abs = ((self.loop_start + self.loop_length) * self.buffersize as f32)
-            .clamp(0.0, self.buffersize as f32);
+            .clamp(0.0, self.buffersize as f32) as f32;
 
         match self.play_dircetion {
             PlayDirection::Forward => {
                 self.play_pos = match mode {
-                    Mode::Grain => self.play_pos + self.speed,
-                    Mode::Tape => self.play_pos + (1.0 * self.pitch),
+                    Mode::Grain => self.play_pos + self.speed as f32,
+                    Mode::Tape => self.play_pos + (1.0 * self.pitch as f32),
                 };
 
                 if self.play_pos >= loop_end_abs - 10.0
@@ -170,8 +203,8 @@ impl Voice {
             }
             PlayDirection::Backward => {
                 self.play_pos = match mode {
-                    Mode::Grain => self.play_pos - self.speed,
-                    Mode::Tape => self.play_pos - (1.0 * self.pitch),
+                    Mode::Grain => self.play_pos - self.speed as f32,
+                    Mode::Tape => self.play_pos - (1.0 * self.pitch) as f32,
                 };
 
                 if self.play_pos <= loop_start_abs + 10.0
@@ -190,7 +223,8 @@ impl Voice {
         if self.grain_trigger.update() && mode == Mode::Grain {
             for grain in self.grains.iter_mut() {
                 let mut pos = self.play_pos
-                    + self.spray * ((fastrand::f32() * self.sample_rate) - self.sample_rate * 0.5);
+                    + (self.spray * ((fastrand::f32() * self.sample_rate) - self.sample_rate * 0.5))
+                        as f32;
 
                 if pos < 0.0 {
                     pos = self.buffersize as f32 + pos;

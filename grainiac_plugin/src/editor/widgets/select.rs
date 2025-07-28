@@ -1,12 +1,13 @@
 use nih_plug::params::Param;
 use nih_plug_vizia::{
     vizia::{
-        binding::Lens,
+        binding::{Lens, LensExt},
         context::{Context, EventContext},
         events::Event,
         input::MouseButton,
-        layout::Units::{self},
-        modifiers::{LayoutModifiers, StyleModifiers},
+        layout::Units::Stretch,
+        modifiers::{LayoutModifiers, StyleModifiers, TextModifiers},
+        style::TextAlign,
         view::{Handle, View},
         views::{HStack, Label},
         window::WindowEvent,
@@ -66,10 +67,11 @@ impl Select {
                     param.normalized_value_to_string(param.unmodulated_normalized_value(), true)
                 });
                 HStack::new(cx, |cx| {
-                    Label::new(cx, &format!("{}:  ", label));
-                    Label::new(cx, display_value_lens).class("bold");
+                    Label::new(cx, &format!("{}: ", label));
+                    Label::new(cx, display_value_lens);
                 })
-                .width(Units::Auto);
+                .class("button")
+                .text_align(TextAlign::Center);
             }),
         )
     }
