@@ -66,7 +66,7 @@ impl Select {
                     param.normalized_value_to_string(param.unmodulated_normalized_value(), true)
                 });
                 HStack::new(cx, |cx| {
-                    Label::new(cx, &format!("{}:   ", label)).class("label");
+                    Label::new(cx, &format!("{}: ", label)).class("label");
                     Label::new(cx, display_value_lens).class("val");
                 })
                 .class("button")

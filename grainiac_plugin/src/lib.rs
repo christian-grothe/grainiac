@@ -51,7 +51,7 @@ impl Enum for PlayDirection {
     }
 
     fn variants() -> &'static [&'static str] {
-        &[">>", "<<", "><"]
+        &["", "", ""]
     }
 }
 
@@ -82,7 +82,7 @@ impl Enum for Hold {
     }
 
     fn variants() -> &'static [&'static str] {
-        &["[ ]", "[X]"]
+        &["", ""]
     }
 }
 

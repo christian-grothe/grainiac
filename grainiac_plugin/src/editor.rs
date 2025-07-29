@@ -67,6 +67,7 @@ pub(crate) fn create(
         }
 
         cx.add_font_mem(include_bytes!("editor/JetBrainsMonoNerdFont-Medium.ttf"));
+        cx.set_default_font(&["JetBrainsMono Nerd Font"]);
 
         Data {
             params: params.clone(),
@@ -120,7 +121,6 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
         .z_index(10)
         .color(Color::white())
         .border_width(Pixels(0.0))
-        // .background_color(Color::rgb(150, 100, 100))
         .class("button");
 
         Waveform::new(cx, draw_data.clone(), index);
@@ -138,15 +138,15 @@ fn instance(cx: &mut Context, index: usize) {
         Select::new(cx, "grain dir", 3, Data::params, move |params| {
             &params.instances[index].g_dir
         })
-        .width(Pixels(130.0))
+        .width(Pixels(150.0))
         .left(Pixels(15.0))
         .right(Pixels(15.0));
 
         Select::new(cx, "play dir", 3, Data::params, move |params| {
             &params.instances[index].p_dir
         })
-        .right(Pixels(15.0))
-        .width(Pixels(130.0));
+        .width(Pixels(150.0))
+        .right(Pixels(15.0));
 
         Select::new(cx, "Hold", 2, Data::params, move |params| {
             &params.instances[index].hold
