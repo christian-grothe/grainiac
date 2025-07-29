@@ -1,11 +1,8 @@
 :root {
-  background-color: #113f67;
+  /* background-color: #113f67; */
+  background-color: #1b3c53;
   color: #eeeeee;
   font-size: 18;
-}
-
-label {
-  text-align: center;
 }
 
 .border {
@@ -18,12 +15,18 @@ label {
 
 .button {
   border-radius: 5px;
-  background-color: rgb(150, 100, 100);
+  background-color: rgba(150, 100, 100, 0.8);
   border-radius: 5px;
   transition: background-color 0.25s;
+  font-size: 18;
+  font-weight: bold;
 }
 
 .button:hover {
-  background-color: rgb(180, 100, 100);
+  background-color: rgba(150, 100, 100, 0.7);
   transition: background-color 0.1s;
+}
+
+.bar {
+  background-color: rgba(150, 100, 100, 0.8);
 }

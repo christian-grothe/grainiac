@@ -66,6 +66,8 @@ pub(crate) fn create(
             nih_error!("Failed to load stylesheet: {err:?}")
         }
 
+        cx.add_font_mem(include_bytes!("editor/JetBrainsMonoNerdFont-Medium.ttf"));
+
         Data {
             params: params.clone(),
             sender: sender.clone(),
@@ -90,12 +92,14 @@ fn top_bar(cx: &mut Context) {
             .font_size(25.0)
             .text_align(TextAlign::Right);
     })
-    .left(Pixels(15.0))
-    .top(Pixels(10.0))
-    .right(Pixels(15.0))
-    .height(Pixels(50.0))
-    .text_align(TextAlign::Right)
-    .width(Stretch(1.0));
+    .child_bottom(Stretch(1.0))
+    .child_top(Stretch(1.0))
+    .child_left(Pixels(15.0))
+    .child_right(Pixels(15.0))
+    .bottom(Pixels(20.0))
+    .height(Pixels(40.0))
+    .width(Stretch(1.0))
+    .class("bar");
 }
 
 fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
@@ -116,7 +120,8 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
         .z_index(10)
         .color(Color::white())
         .border_width(Pixels(0.0))
-        .background_color(Color::rgb(150, 100, 100));
+        // .background_color(Color::rgb(150, 100, 100))
+        .class("button");
 
         Waveform::new(cx, draw_data.clone(), index);
     })
@@ -133,14 +138,20 @@ fn instance(cx: &mut Context, index: usize) {
         Select::new(cx, "grain dir", 3, Data::params, move |params| {
             &params.instances[index].g_dir
         })
-        .width(Pixels(125.0))
+        .width(Pixels(130.0))
         .left(Pixels(15.0))
         .right(Pixels(15.0));
 
         Select::new(cx, "play dir", 3, Data::params, move |params| {
             &params.instances[index].p_dir
         })
-        .width(Pixels(125.0));
+        .right(Pixels(15.0))
+        .width(Pixels(130.0));
+
+        Select::new(cx, "Hold", 2, Data::params, move |params| {
+            &params.instances[index].hold
+        })
+        .width(Pixels(130.0));
     })
     .height(Pixels(40.0))
     .bottom(Pixels(10.0));

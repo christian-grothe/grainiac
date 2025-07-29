@@ -55,6 +55,37 @@ impl Enum for PlayDirection {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hold {
+    On,
+    Off,
+}
+
+impl Enum for Hold {
+    fn to_index(self) -> usize {
+        match self {
+            Hold::Off => 0,
+            Hold::On => 1,
+        }
+    }
+
+    fn from_index(index: usize) -> Self {
+        if index == 0 {
+            Hold::Off
+        } else {
+            Hold::On
+        }
+    }
+
+    fn ids() -> Option<&'static [&'static str]> {
+        Some(&["off", "on"])
+    }
+
+    fn variants() -> &'static [&'static str] {
+        &["[ ]", "[X]"]
+    }
+}
+
 #[derive(Params)]
 struct InstanceParams {
     #[id = "loop_start"]
@@ -86,7 +117,7 @@ struct InstanceParams {
     #[id = "p_dir"]
     pub p_dir: EnumParam<PlayDirection>,
     #[id = "hold"]
-    pub hold: BoolParam,
+    pub hold: EnumParam<Hold>,
 }
 
 impl InstanceParams {
@@ -165,7 +196,7 @@ impl InstanceParams {
 
             p_dir: EnumParam::new("Play Direction", PlayDirection::Forward),
 
-            hold: BoolParam::new("Hold", false),
+            hold: EnumParam::new("Hold", Hold::Off),
         }
     }
 }
