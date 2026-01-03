@@ -15,8 +15,8 @@
 
 .button {
   border-radius: 5px;
-  background-color: rgba(150, 100, 100, 0.3);
-  border-radius: 5px;
+  background-color: rgba(100, 100, 100, 0.3);
+  border-radius: 15px;
   transition: background-color 0.25s;
   font-size: 18;
   font-weight: bold;
@@ -28,5 +28,5 @@
 }
 
 .bar {
-  background-color: rgba(150, 100, 100, 0.2);
+  background-color: rgba(100, 100, 100, 0.2);
 }

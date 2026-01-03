@@ -2,7 +2,7 @@ use crossbeam::channel::Sender;
 use nih_plug::nih_error;
 use nih_plug::prelude::Editor;
 use nih_plug_vizia::vizia::prelude::*;
-use nih_plug_vizia::{assets, create_vizia_editor, ViziaState, ViziaTheming};
+use nih_plug_vizia::{create_vizia_editor, ViziaState, ViziaTheming};
 use rfd::FileDialog;
 use std::sync::{Arc, Mutex};
 
@@ -59,9 +59,6 @@ pub(crate) fn create(
     sender: Arc<Sender<FileMessage>>,
 ) -> Option<Box<dyn Editor>> {
     create_vizia_editor(editor_state, ViziaTheming::Custom, move |cx, _| {
-        assets::register_noto_sans_light(cx);
-        assets::register_noto_sans_thin(cx);
-
         if let Err(err) = cx.add_stylesheet(include_style!("src/editor/styles.css")) {
             nih_error!("Failed to load stylesheet: {err:?}")
         }
@@ -138,14 +135,14 @@ fn instance(cx: &mut Context, index: usize) {
         Select::new(cx, "grain dir", 3, Data::params, move |params| {
             &params.instances[index].g_dir
         })
-        .width(Pixels(150.0))
+        .width(Pixels(160.0))
         .left(Pixels(15.0))
         .right(Pixels(15.0));
 
         Select::new(cx, "play dir", 3, Data::params, move |params| {
             &params.instances[index].p_dir
         })
-        .width(Pixels(150.0))
+        .width(Pixels(160.0))
         .right(Pixels(15.0));
 
         Select::new(cx, "Hold", 2, Data::params, move |params| {

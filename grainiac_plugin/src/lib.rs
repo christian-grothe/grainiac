@@ -194,7 +194,7 @@ impl InstanceParams {
 
             g_dir: EnumParam::new("Play Direction", PlayDirection::Forward),
 
-            p_dir: EnumParam::new("Play Direction", PlayDirection::Forward),
+            p_dir: EnumParam::new("Grain Direction", PlayDirection::Forward),
 
             hold: EnumParam::new("Hold", Hold::Off),
         }
@@ -333,66 +333,21 @@ impl Plugin for Grainiac {
             );
         }
 
+
+         if let Ok(msg) = self.receiver.try_recv() {
+             match msg {
+                 FileMessage::LoadAudio(samples, index) => {
+                     self.sampler.load_buf(samples, index);
+                 }
+                 _ => {}
+             }
+         }
+
         let mut next_event = context.next_event();
-
-        if let Ok(msg) = self.receiver.try_recv() {
-            match msg {
-                FileMessage::LoadAudio(samples, index) => {
-                    self.sampler.load_buf(samples, index);
-                }
-                _ => {}
-            }
-        }
-
         while let Some(event) = next_event {
             match event {
                 NoteEvent::NoteOn { note, .. } => self.sampler.note_on(note as usize),
                 NoteEvent::NoteOff { note, .. } => self.sampler.note_off(note as usize),
-                NoteEvent::MidiCC { cc, value, .. } => match cc {
-                    22 => {
-                        if value > 0.0 {
-                            self.sampler.record(0)
-                        }
-                    }
-                    23 => {
-                        if value > 0.0 {
-                            self.sampler.record(1)
-                        }
-                    }
-                    24 => {
-                        if value > 0.0 {
-                            self.sampler.record(2)
-                        }
-                    }
-                    25 => {
-                        if value > 0.0 {
-                            self.sampler.record(3)
-                        }
-                    }
-                    26 => {
-                        if value > 0.0 {
-                            self.sampler.toggle_hold(0)
-                        }
-                    }
-                    27 => {
-                        if value > 0.0 {
-                            self.sampler.toggle_hold(1)
-                        }
-                    }
-                    28 => {
-                        if value > 0.0 {
-                            self.sampler.toggle_hold(2)
-                        }
-                    }
-                    29 => {
-                        if value > 0.0 {
-                            self.sampler.toggle_hold(3)
-                        }
-                    }
-                    _ => {
-                        nih_plug::nih_log!("{:?}", event)
-                    }
-                },
                 _ => {
                     nih_plug::nih_log!("{:?}", event)
                 }
@@ -424,7 +379,7 @@ impl ClapPlugin for Grainiac {
 }
 
 impl Vst3Plugin for Grainiac {
-    const VST3_CLASS_ID: [u8; 16] = *b"Exactly16Chars!!";
+    const VST3_CLASS_ID: [u8; 16] = *b"GrainiacGranular";
 
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
         Vst3SubCategory::Instrument,

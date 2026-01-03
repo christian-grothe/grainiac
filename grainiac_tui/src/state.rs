@@ -47,6 +47,7 @@ impl View {
     }
 }
 
+#[allow(dead_code)]
 pub struct State {
     pub exiting: bool,
     pub view: View,

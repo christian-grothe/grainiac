@@ -13,7 +13,7 @@ use std::{
 use grainiac_core::Sampler;
 use jack::{AudioIn, AudioOut, Client, ClientOptions, MidiIn, Port};
 use ratatui::crossterm::{
-    event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
+    event::{KeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     execute,
 };
 
@@ -334,7 +334,6 @@ fn main() -> io::Result<()> {
     }
 
     ratatui::restore();
-    execute!(stdout, PopKeyboardEnhancementFlags);
 
     Ok(())
 }
