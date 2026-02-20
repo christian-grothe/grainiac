@@ -194,10 +194,10 @@ impl Sampler {
         }
     }
 
-    pub fn get_bufs(&mut self) -> Vec<&Vec<f32>> {
+    pub fn get_bufs(&mut self) -> Vec<&[f32]> {
         let mut comb = vec![];
         for instance in self.instances.iter() {
-            comb.push(&instance.buffer)
+            comb.push(&instance.buffer[0..BUFFER_SIZE_SECONDS_RECORD as usize]);
         }
 
         comb

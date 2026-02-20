@@ -244,9 +244,9 @@ fn main() -> io::Result<()> {
                         let full_path = path.join(file_name);
                         let mut writer = hound::WavWriter::create(full_path, spec).unwrap();
                         let bufs = state.sampler.get_bufs();
-                        for buf in bufs.iter() {
-                            for sample in buf.iter() {
-                                writer.write_sample(*sample).unwrap();
+                        for buf in bufs {
+                            for &sample in buf[..10].iter() {
+                                writer.write_sample(sample).unwrap();
                             }
                         }
                     }
@@ -256,6 +256,7 @@ fn main() -> io::Result<()> {
                         let path = home_dir.join(".local/share/grainiac/");
                         let file_name = format!("grainiac_{}.wav", index);
                         let full_path = path.join(file_name);
+
                         if let Ok(mut reader) = hound::WavReader::open(full_path) {
                             let samples: Vec<f32> =
                                 reader.samples::<f32>().map(|s| s.unwrap()).collect();

@@ -28,6 +28,7 @@ impl Instance {
         let max_buffer_size = (BUFFER_SIZE_SECONDS_MAX * sample_rate) as usize;
         let rec_buffer_size = (BUFFER_SIZE_SECONDS_RECORD * sample_rate) as usize;
         let loop_area = (0.25, 0.5);
+
         Self {
             buffer: vec![0.0; max_buffer_size],
             buffer_to_draw: BufferToDraw::new(BAR_NUM),
@@ -235,7 +236,7 @@ impl BufferToDraw {
         self.sample_sum += sample * sample;
         self.sample_counter += 1;
 
-        if self.sample_counter >= self.samples_per_bar {
+        if self.sample_counter > self.samples_per_bar && self.current_bar < BAR_NUM {
             let mean_square = self.sample_sum / self.samples_per_bar as f32;
             self.buffer[self.current_bar] = mean_square.sqrt();
 
