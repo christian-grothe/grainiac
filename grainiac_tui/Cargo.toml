@@ -1,5 +1,5 @@
 [package]
-name = "standalone"
+name = "grainiac_tui"
 version = "0.1.0"
 edition = "2021"
 

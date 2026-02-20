@@ -1,4 +1,4 @@
-use grainiac::Grainiac;
+use grainiac_plugin_gui::Grainiac;
 use nih_plug::prelude::*;
 
 fn main() {
