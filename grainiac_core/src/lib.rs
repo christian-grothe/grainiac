@@ -197,7 +197,7 @@ impl Sampler {
     pub fn get_bufs(&mut self) -> Vec<&[f32]> {
         let mut comb = vec![];
         for instance in self.instances.iter() {
-            comb.push(&instance.buffer[0..BUFFER_SIZE_SECONDS_RECORD as usize]);
+            comb.push(&instance.buffer[0..instance.current_buffer_size]);
         }
 
         comb
@@ -208,13 +208,7 @@ impl Sampler {
         let chunks = bufs.chunks(chunk_size);
 
         for (instance, chunk) in self.instances.iter_mut().zip(chunks) {
-            //instance.buffer = chunk.to_vec();
-            instance.buffer.copy_from_slice(chunk);
-
-            instance.buffer_to_draw.reset();
-            for sample in instance.buffer.iter() {
-                instance.buffer_to_draw.update(*sample);
-            }
+            instance.load_audio(chunk.to_vec());
         }
     }
 

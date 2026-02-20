@@ -245,7 +245,7 @@ fn main() -> io::Result<()> {
                         let mut writer = hound::WavWriter::create(full_path, spec).unwrap();
                         let bufs = state.sampler.get_bufs();
                         for buf in bufs {
-                            for &sample in buf[..10].iter() {
+                            for &sample in buf.iter() {
                                 writer.write_sample(sample).unwrap();
                             }
                         }
