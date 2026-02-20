@@ -105,6 +105,8 @@ struct Mapping {
     play_dir: u8,
     grain_dir: u8,
     mode: u8,
+    select_l: u8,
+    select_r: u8,
 }
 
 pub enum Msg {
@@ -140,7 +142,7 @@ fn main() -> io::Result<()> {
     let midi_in_port = client.register_port("midi_in", MidiIn::default()).unwrap();
 
     let sr = client.sample_rate() as f32;
-    let (sampler, out_buf) = Sampler::new(sr);
+    let (sampler, out_buf) = Sampler::new(sr, 4);
 
     struct State {
         input_l: Port<AudioIn>,
@@ -402,6 +404,14 @@ fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mappi
             if value > 0.0 {
                 sampler.toggle_mode(instance);
             }
+        }
+        x if x == mapping.select_l => {
+            let select = value > 0.0;
+            sampler.set_select_l(select);
+        }
+        x if x == mapping.select_r => {
+            let select = value > 0.0;
+            sampler.set_select_r(select);
         }
         _ => {} //println!("{:?}", event.bytes),
                 //

@@ -4,7 +4,7 @@ use voice::PlayDirection;
 
 use crate::constants::BUFFER_SIZE_SECONDS_RECORD;
 pub use crate::{
-    constants::{BAR_NUM, GRAIN_NUM, INSTANCE_NUM, VOICE_NUM},
+    constants::{BAR_NUM, GRAIN_NUM, VOICE_NUM},
     instance::{Instance, Mode},
 };
 
@@ -120,16 +120,18 @@ pub struct Sampler {
     sample_rate: f32,
     input_peak: PeakFollower,
     output_peak: PeakFollower,
+    l_select: bool,
+    r_select: bool,
 }
 
 impl Sampler {
-    pub fn new(sample_rate: f32) -> (Self, Output<Vec<DrawData>>) {
-        let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); INSTANCE_NUM]);
+    pub fn new(sample_rate: f32, instance_num: usize) -> (Self, Output<Vec<DrawData>>) {
+        let (buf_input, buf_output) = triple_buffer(&vec![DrawData::new(); instance_num]);
         (
             Self {
                 instances: {
-                    let mut instances: Vec<Instance> = Vec::with_capacity(INSTANCE_NUM);
-                    for _ in 0..INSTANCE_NUM {
+                    let mut instances: Vec<Instance> = Vec::with_capacity(instance_num);
+                    for _ in 0..instance_num {
                         instances.push(Instance::new(sample_rate))
                     }
                     instances
@@ -139,6 +141,8 @@ impl Sampler {
                 sample_rate,
                 input_peak: PeakFollower::new(250.0, sample_rate),
                 output_peak: PeakFollower::new(250.0, sample_rate),
+                l_select: false,
+                r_select: true,
             },
             buf_output,
         )
@@ -224,6 +228,15 @@ impl Sampler {
     pub fn render(&mut self, stereo_slice: (&mut f32, &mut f32)) {
         let mut output_l = 0.0;
         let mut output_r = 0.0;
+
+        if !self.r_select {
+            *stereo_slice.1 = 0.0;
+        }
+
+        if !self.l_select {
+            *stereo_slice.0 = 0.0;
+        }
+
         let mono = *stereo_slice.0 + *stereo_slice.1;
 
         self.input_peak.process(mono);
@@ -240,6 +253,14 @@ impl Sampler {
 
         *stereo_slice.0 = output_l;
         *stereo_slice.1 = output_r;
+    }
+
+    pub fn set_select_r(&mut self, select: bool) {
+        self.r_select = select
+    }
+
+    pub fn set_select_l(&mut self, select: bool) {
+        self.l_select = select
     }
 
     pub fn note_on(&mut self, midi_note: usize) {

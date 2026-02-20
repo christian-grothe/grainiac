@@ -136,6 +136,7 @@ impl State {
             _ => {}
         }
     }
+
     fn handle_audio_view(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Esc => self.exiting = true,

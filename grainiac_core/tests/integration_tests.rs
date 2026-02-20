@@ -2,7 +2,7 @@ use grainiac_core::Sampler;
 
 #[test]
 fn play_20_seconds() {
-    let (mut sampler, _) = Sampler::new(44100.0);
+    let (mut sampler, _) = Sampler::new(44100.0, 1);
     let mut data = vec![0.0; 44100 * 20];
 
     sampler.note_on(60);

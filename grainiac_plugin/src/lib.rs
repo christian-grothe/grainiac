@@ -207,12 +207,12 @@ struct GrainiacParams {
     editor_state: Arc<ViziaState>,
 
     #[nested(array, group = "instances")]
-    instances: [InstanceParams; INSTANCE_NUM],
+    instances: [InstanceParams; 2],
 }
 
 impl Default for Grainiac {
     fn default() -> Self {
-        let (sampler, buf_output) = Sampler::new(48000.0);
+        let (sampler, buf_output) = Sampler::new(48000.0, 2);
         let (sender, receiver) = bounded(1);
 
         Self {
@@ -229,7 +229,7 @@ impl Default for GrainiacParams {
     fn default() -> Self {
         Self {
             editor_state: editor::default_state(),
-            instances: [(); INSTANCE_NUM].map(|_| InstanceParams::new()),
+            instances: [(); 2].map(|_| InstanceParams::new()),
         }
     }
 }
@@ -333,15 +333,14 @@ impl Plugin for Grainiac {
             );
         }
 
-
-         if let Ok(msg) = self.receiver.try_recv() {
-             match msg {
-                 FileMessage::LoadAudio(samples, index) => {
-                     self.sampler.load_buf(samples, index);
-                 }
-                 _ => {}
-             }
-         }
+        if let Ok(msg) = self.receiver.try_recv() {
+            match msg {
+                FileMessage::LoadAudio(samples, index) => {
+                    self.sampler.load_buf(samples, index);
+                }
+                _ => {}
+            }
+        }
 
         let mut next_event = context.next_event();
         while let Some(event) = next_event {
