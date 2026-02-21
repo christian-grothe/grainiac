@@ -382,8 +382,6 @@ impl Vst3Plugin for Grainiac {
 
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
         Vst3SubCategory::Instrument,
-        Vst3SubCategory::Sampler,
-        Vst3SubCategory::Stereo,
     ];
 }
 

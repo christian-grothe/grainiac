@@ -12,6 +12,7 @@ use crate::{
     peak_meter_widget::PeakMeter,
     state::{NumMode, State, View},
     track_widget::Track,
+    INSTANCE_NUM,
 };
 
 pub fn draw(frame: &mut Frame, state: &mut State) {
@@ -31,29 +32,24 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
         .constraints(vec![Constraint::Length(100)])
         .split(frame.area());
 
+    let mut constraints = vec![Constraint::Length(1), Constraint::Length(1)];
+
+    for _ in 0..INSTANCE_NUM {
+        constraints.push(Constraint::Length(11));
+    }
+
+    constraints.push(Constraint::Length(1));
+
     let layout_vertical = Layout::default()
         .direction(Direction::Vertical)
         .flex(Flex::Center)
-        .constraints(vec![
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(10),
-            Constraint::Length(10),
-            Constraint::Length(10),
-            Constraint::Length(10),
-            Constraint::Length(1),
-        ])
+        .constraints(constraints)
         .split(layout_horizontal[0]);
 
-    let track_a = Track::from("A", out_buf[0].clone());
-    let track_b = Track::from("B", out_buf[1].clone());
-    let track_c = Track::from("C", out_buf[2].clone());
-    let track_d = Track::from("D", out_buf[3].clone());
-
-    frame.render_widget(track_a, layout_vertical[2]);
-    frame.render_widget(track_b, layout_vertical[3]);
-    frame.render_widget(track_c, layout_vertical[4]);
-    frame.render_widget(track_d, layout_vertical[5]);
+    for i in 0..INSTANCE_NUM {
+        let track_a = Track::from(&(i + 1).to_string(), out_buf[i].clone());
+        frame.render_widget(track_a, layout_vertical[i + 2]);
+    }
 
     let span = match state.num_mode {
         NumMode::LoadPreset => Span::from("Press 0 - 9 to LOAD a PRESET"),
@@ -62,7 +58,7 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
         NumMode::SaveAudio => Span::from("Press 0 - 9 to SAVE an AUDIO"),
     };
 
-    frame.render_widget(span, layout_vertical[6]);
+    frame.render_widget(span, layout_vertical[layout_vertical.len() - 1]);
 
     let peak_meter_layout = Layout::default()
         .direction(Direction::Horizontal)

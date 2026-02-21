@@ -19,8 +19,10 @@ use ratatui::crossterm::{
 
 mod peak_meter_widget;
 mod state;
-mod track_widget;
+pub mod track_widget;
 mod ui;
+
+pub const INSTANCE_NUM: usize = 2;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct Config {
@@ -142,7 +144,7 @@ fn main() -> io::Result<()> {
     let midi_in_port = client.register_port("midi_in", MidiIn::default()).unwrap();
 
     let sr = client.sample_rate() as f32;
-    let (sampler, out_buf) = Sampler::new(sr, 4);
+    let (sampler, out_buf) = Sampler::new(sr, INSTANCE_NUM);
 
     struct State {
         input_l: Port<AudioIn>,

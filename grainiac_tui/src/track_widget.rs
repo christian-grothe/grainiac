@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 
-mod brailles;
+pub mod brailles;
 
 pub struct Track {
     label: String,
@@ -28,7 +28,7 @@ impl Widget for Track {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(3), Constraint::Length(6)])
+            .constraints(vec![Constraint::Length(4), Constraint::Length(6)])
             .split(area);
 
         let param_layout = Layout::default()
