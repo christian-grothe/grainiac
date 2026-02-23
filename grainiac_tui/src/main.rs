@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs::File;
 use std::io::BufReader;
-use std::process::Command;
 use std::{
     io::{self, stdout},
     time::{Duration, Instant},
@@ -313,10 +312,6 @@ fn main() -> io::Result<()> {
         .connect_ports_by_name("system:capture_2", "grainiac:input_r")
         .unwrap_or_default();
 
-    let mut cmd = Command::new("bash");
-    cmd.arg("./connect.sh");
-    cmd.output().expect("failed to execute command");
-
     let mut state = state::State::new(out_buf, s.clone(), config.presets);
     let mut terminal = ratatui::init();
     let mut stdout = stdout();
@@ -326,7 +321,7 @@ fn main() -> io::Result<()> {
         PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
     )?;
 
-    let tick_rate = Duration::from_millis(60);
+    let tick_rate = Duration::from_millis(20); // around 50fps
     let mut last_tick = Instant::now();
 
     while !state.exiting {

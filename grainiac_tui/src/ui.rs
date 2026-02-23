@@ -47,8 +47,8 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
         .split(layout_horizontal[0]);
 
     for i in 0..INSTANCE_NUM {
-        let track_a = Track::from(&(i + 1).to_string(), out_buf[i].clone());
-        frame.render_widget(track_a, layout_vertical[i + 2]);
+        let track = Track::from(&(i + 1).to_string(), out_buf[i].clone());
+        frame.render_widget(track, layout_vertical[i + 2]);
     }
 
     let span = match state.num_mode {
