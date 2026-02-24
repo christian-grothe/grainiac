@@ -1,15 +1,23 @@
 # Grainiac
 
-Grainiac is a granular sampler that has a terminal user interface. The plugin project does not work at the moment because I am focussing on the standalone. For the standalone version I created a custom midi controller.
-At some point I am planning on releasing this as a DIY package where the sampler can run on a raspberry pi running the terminal user interface on a small lcd screen.
-Currently it just works on Linux as a Jack Client.
+Grainiac is a granular sampler. It currently runs as a vst3 plugin, standlone with a tui and a vst3 plugin with a tui style interface which is currently experimental and under development.
 
 [![Demo#1](https://img.youtube.com/vi/uADcnCzQX3A/0.jpg)](https://www.youtube.com/watch?v=XzJnMVo1ZkM)
 [![Demo#2](https://img.youtube.com/vi/uADcnCzQX3A/0.jpg)](https://www.youtube.com/watch?v=uADcnCzQX3A)
 
-# Config
+## Project Structure
 
-You need to have a config.json file under ~/.config/grainiac/ with the following schema:
+| Crate                 | Description                                               |
+| --------------------- | --------------------------------------------------------- |
+| `grainiac_core`       | Core audio DSP engine (no UI dependencies)                |
+| `grainiac_tui`        | Standalone JACK client with Ratatui TUI                   |
+| `grainiac_plugin_tui` | VST3/CLAP plugin with Ratatui TUI editor _(experimental)_ |
+| `grainiac_plugin_gui` | Vizia-based GUI plugin                                    |
+| `midi_ctrl`           | PlatformIO firmware for Teensy 4.0 MIDI controller        |
+
+## Config
+
+You need a `config.json` file under `~/.config/grainiac/` with the following schema:
 
 ```json
 {
@@ -56,37 +64,17 @@ You need to have a config.json file under ~/.config/grainiac/ with the following
 }
 ```
 
-The arrays under presets represent the tracks from A to D.
-The name field is currently not used.
-the char field is the character that you press to load the preset.
+The arrays under presets represent tracks A to D. The `char` field is the key to press to load the preset. The `name` field is currently unused.
 
-The mapping section is to map midi cc to certain parameters. Currently every track of the sampler is mapped to a unique midi channel. So with the JSON above loop_start is mapped to midi cc 1 and channel 1 is changing track A, channel 2 track B and so on.
+The `mapping` section maps MIDI CC numbers to parameters. Each track corresponds to a MIDI channel (channel 1 = track A, channel 2 = track B, etc.).
 
-In order to save and load audios you need to manually create the folder ~/.local/share/grainiac/
+To save and load audio files, manually create the folder `~/.local/share/grainiac/`.
 
-# Mappings
-|   Key     |   Function    |
-| --------- | ------------- |
-|   m       |   change mode |
-|   0..9    |   load / save |
-|   n       |   switch view | 
-|   esc     |   close       |
+## Key Mappings
 
-
-# BOM
-
-This is the bill of material that I use for the midi controller and the raspberry pi.
-
-| Part           | Price | Quantity | Total |
-| -------------- | ----- | -------- | ----- |
-| RaspberryPi 5  | 67,40 | 1        | 67.40 |
-| LCD Screen     | 70    | 1        | 70    |
-| Teensy 4.0     | 33    | 1        | 33    |
-| 4051 MUX       | 0.60  | 8        | 4.8   |
-| Potis          | 0.99  | 4 x 12   | 47.52 |
-| Tactile Switch |       | 4 x 4    |       |
-| USB Audio      | 11    | 1        | 11    |
-| PSU            | 12.65 | 1        | 12.65 |
-| PCB            |       |          |       |
-
-**_TOTAL: 246.37_**
+| Key    | Function    |
+| ------ | ----------- |
+| `m`    | change mode |
+| `0..9` | load / save |
+| `n`    | switch view |
+| `esc`  | close       |
