@@ -8,6 +8,8 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 
+use crate::widgets::fader_widget::Fader;
+
 pub mod brailles;
 
 pub struct Track {
@@ -43,12 +45,12 @@ impl Widget for Track {
 
         let param_line_b = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Length(16); 5])
+            .constraints(vec![Constraint::Length(18); 5])
             .split(param_layout[1]);
 
         let param_line_c = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Length(16); 5])
+            .constraints(vec![Constraint::Length(18); 5])
             .split(param_layout[2]);
 
         // draw waveform
@@ -137,9 +139,8 @@ impl Widget for Track {
             PlayDirection::Backward => "<<",
         };
 
-        let spans = Text::from(Line::from(vec![
+        let text = Text::from(Line::from(vec![
             Span::styled(self.label, Style::default().bold()),
-            // Span::styled("   ", Style::default().bold()),
             Span::styled("  Rec: ", Style::default().bold()),
             Span::styled(
                 is_rec,
@@ -168,45 +169,30 @@ impl Widget for Track {
             Span::styled(mode, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
         ]));
 
-        Paragraph::new(spans).render(param_line_a[0], buf);
+        Paragraph::new(text).render(param_line_a[0], buf);
 
-        if self.draw_data.state.density < 10.0 {
-            Span::from(format!("   den: {:.2}  |", self.draw_data.state.density))
-                .render(param_line_b[0], buf);
-        } else {
-            Span::from(format!("   den: {:.2} |", self.draw_data.state.density))
-                .render(param_line_b[0], buf);
-        }
-        Span::from(format!(
-            "   len: {:.2}  |",
-            self.draw_data.state.grain_length
-        ))
-        .render(param_line_c[0], buf);
+        Fader::new("   den", self.draw_data.state.density / 50.0).render(param_line_b[0], buf);
+        Fader::new("   len", self.draw_data.state.grain_length).render(param_line_c[0], buf);
 
-        Span::from(format!("  spd: {:.2}  |", self.draw_data.state.play_speed))
-            .render(param_line_b[1], buf);
-        Span::from(format!("  spy: {:.2}  |", self.draw_data.state.spray))
-            .render(param_line_c[1], buf);
+        Fader::new("   spd", self.draw_data.state.play_speed / 2.0).render(param_line_b[1], buf);
+        Fader::new("   spy", self.draw_data.state.spray).render(param_line_c[1], buf);
 
         if self.draw_data.state.pan > 0.0 {
-            Span::from(format!("  pan: R{:.2}  |", self.draw_data.state.pan.abs()))
+            Span::from(format!("  pan:  R{:.2}  ", self.draw_data.state.pan.abs()))
                 .render(param_line_b[2], buf);
         } else if self.draw_data.state.pan < 0.0 {
-            Span::from(format!("  pan: L{:.2}  |", self.draw_data.state.pan.abs()))
+            Span::from(format!("  pan:  L{:.2}  ", self.draw_data.state.pan.abs()))
                 .render(param_line_b[2], buf);
         } else {
-            Span::from(format!("  pan: -C-    |")).render(param_line_b[2], buf);
+            Span::from(format!("  pan:   -C-   ")).render(param_line_b[2], buf);
         }
-        Span::from(format!("  spr: {:.2}   |", self.draw_data.state.spread))
-            .render(param_line_c[2], buf);
 
-        Span::from(format!("  att: {:.2}  |", self.draw_data.state.attack))
-            .render(param_line_b[3], buf);
-        Span::from(format!("  rel: {:.2}  |", self.draw_data.state.release))
-            .render(param_line_c[3], buf);
+        Fader::new("  spr", self.draw_data.state.spread).render(param_line_c[2], buf);
+
+        Fader::new("  att", self.draw_data.state.attack / 5.0).render(param_line_b[3], buf);
+        Fader::new("  rel", self.draw_data.state.release / 5.0).render(param_line_c[3], buf);
 
         Span::from(format!("  pch: {} ", self.draw_data.state.pitch)).render(param_line_b[4], buf);
-        Span::from(format!("  vol: {:.2} ", self.draw_data.state.gain))
-            .render(param_line_c[4], buf);
+        Fader::new("  vol", self.draw_data.state.gain).render(param_line_c[4], buf);
     }
 }

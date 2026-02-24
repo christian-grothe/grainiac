@@ -16,10 +16,9 @@ use ratatui::crossterm::{
     execute,
 };
 
-mod peak_meter_widget;
 mod state;
-pub mod track_widget;
 mod ui;
+mod widgets;
 
 pub const INSTANCE_NUM: usize = 2;
 

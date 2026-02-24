@@ -9,10 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    peak_meter_widget::PeakMeter,
-    state::{NumMode, State, View},
-    track_widget::Track,
-    INSTANCE_NUM,
+    INSTANCE_NUM, state::{NumMode, State, View}, widgets::{peak_meter_widget::PeakMeter, track_widget::Track}
 };
 
 pub fn draw(frame: &mut Frame, state: &mut State) {
