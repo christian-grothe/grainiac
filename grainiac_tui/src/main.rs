@@ -288,6 +288,7 @@ fn main() -> io::Result<()> {
             for (sample_l, sample_r) in output_l.iter_mut().zip(output_r.iter_mut()) {
                 state.sampler.render((sample_l, sample_r));
             }
+
             jack::Control::Continue
         },
         move |_, _, _| jack::Control::Continue,
