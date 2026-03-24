@@ -5,7 +5,7 @@ project(OhMightyGrain) # <-- change me
 # converts the "gain.clap" file into AUv2 plugin "gain.component".
 
 # assumes the "gain.clap" file is located next to this CMakeLists.txt
-set(CLAP_PLUGIN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../grainiac_plugin_gui/target/bundled/grainiac_plugin_gui.clap") # <-- change me
+set(CLAP_PLUGIN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../grainiac_plugin_gui/target/bundled/Grainiac.clap") # <-- change me
 
 # the following lines are required to build AU SDK on macOS
 set(CMAKE_CXX_STANDARD 17)

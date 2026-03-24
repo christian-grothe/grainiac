@@ -20,10 +20,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: linux, os: ubuntu-latest, cross-target: "" }
+          # - { name: linux, os: ubuntu-latest, cross-target: "" }
           - { name: macos_aarch64, os: macos-15, cross-target: "" }
-          - { name: macos_x86_64, os: macos-15-intel, cross-target: "" }
-          - { name: windows, os: windows-2025, cross-target: "" }
+          # - { name: macos_x86_64, os: macos-15-intel, cross-target: "" }
+          # - { name: windows, os: windows-2025, cross-target: "" }
 
     name: Build Test Packaging Deploy
     runs-on: ${{ matrix.os }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Build Plugin
         run: |
-          cargo xtask bundle grainiac_plugin_gui --release
+          cargo xtask bundle grainiac --release
 
       - name: Build AU (macOS only)
         if: startsWith(matrix.os, 'macos')
@@ -157,8 +157,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_DEVELOPER_ID: ${{ secrets.APPLE_DEVELOPER_ID }}
         run: |
-          VST3_BUNDLE="target/bundled/grainiac_plugin_gui.vst3"
-          CLAP_BUNDLE="target/bundled/grainiac_plugin_gui.clap"
+          VST3_BUNDLE="target/bundled/Grainiac.vst3"
+          CLAP_BUNDLE="target/bundled/Grainiac.clap"
           AU_BUNDLE="../grainiac_au/build/Grainiac.component"
           ZIP_NAME="Grainiac-${{ matrix.name }}.zip"
           FOLDER="grainiac-${{ matrix.name }}"
@@ -192,8 +192,8 @@ jobs:
 
           rm "$ZIP_NAME"
 
-          xcrun stapler staple "${FOLDER}/grainiac_plugin_gui.vst3"
-          xcrun stapler staple "${FOLDER}/grainiac_plugin_gui.clap"
+          xcrun stapler staple "${FOLDER}/Grainiac.vst3"
+          xcrun stapler staple "${FOLDER}/Grainiac.clap"
           xcrun stapler staple "${FOLDER}/Grainiac.component"
 
           cp ../.github/workflows/readme-${{ matrix.name }}.txt "$FOLDER"
