@@ -1,0 +1,227 @@
+name: Build Test Packaging Deploy
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  push:
+    tags:
+      - "v*"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./grainiac_plugin_gui
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux, os: ubuntu-latest, cross-target: "" }
+          - { name: macos_aarch64, os: macos-15, cross-target: "" }
+          - { name: macos_x86_64, os: macos-15-intel, cross-target: "" }
+          - { name: windows, os: windows-2025, cross-target: "" }
+
+    name: Build Test Packaging Deploy
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.1
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libgl-dev \
+            libjack-dev \
+            libx11-xcb-dev \
+            libxcb1-dev \
+            libxcb-dri2-0-dev \
+            libxcb-icccm4-dev \
+            libxcursor-dev \
+            libxkbcommon-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libegl1-mesa-dev \
+            libgles2-mesa-dev \
+            libwayland-dev \
+            libwayland-egl-backend-dev \
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Plugin
+        run: |
+          cargo xtask bundle grainiac_plugin_gui --release
+
+      - name: Build AU (macOS only)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          cmake \
+            -S ../grainiac_au \
+            -B ../grainiac_au/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="$(uname -m)"
+          cmake --build ../grainiac_au/build --config Release
+
+      # TEST PLUGIN
+      #
+      - name: Test Plugin MacOs
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
+          unzip pluginval.zip
+          mkdir bin
+          pluginval.app/Contents/MacOS/pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/grainiac.vst3" || exit 1
+
+      - name: Test Plugin Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o pluginval.zip
+          unzip pluginval.zip
+          mkdir bin
+          ./pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/grainiac.vst3" || exit 1
+
+      - name: Test Plugin Windows
+        if: startsWith(matrix.os, 'windows')
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-WebRequest https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
+          Expand-Archive pluginval.zip -DestinationPath .
+          ./pluginval.exe --validate-in-proces --skip-gui-tests s --output-dir "./bin" "target/bundled/grainiac.vst3"
+
+      - name: Import Certificates (macOS)
+        if: startsWith(matrix.os, 'macos')
+        uses: sudara/basic-macos-keychain-action@v1
+        id: keychain
+        with:
+          dev-id-app-cert: ${{ secrets.APPLE_CERT_DATA }}
+          dev-id-app-password: ${{ secrets.APPLE_CERT_PASSWORD }}
+
+      - name: ZIP for Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          VST3_BUNDLE="target/bundled/grainiac.vst3"
+          CLAP_BUNDLE="target/bundled/grainiac.clap"
+          ZIP_NAME="Grainiac-${{ matrix.name }}.zip"
+          FOLDER="grainiac-${{ matrix.name }}"
+
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+          mkdir "$FOLDER"
+
+          cp -R "$VST3_BUNDLE" "$FOLDER"
+          cp -R "$CLAP_BUNDLE"  "$FOLDER"
+          cp ../.github/workflows/readme-${{ matrix.name }}.txt "$FOLDER"
+          zip -r "$ZIP_NAME" "$FOLDER"
+
+      - name: ZIP for Windows
+        if: startsWith(matrix.os, 'windows')
+        shell: pwsh
+        run: |
+          $VST3_BUNDLE = "target/bundled/grainiac.vst3"
+          $CLAP_BUNDLE = "target/bundled/grainiac.clap"
+          $Folder = "grainiac-${{ matrix.name }}"
+          $ZipName = "Grainiac-${{ matrix.name }}.zip"
+
+          # Create folder
+          New-Item -ItemType Directory -Force -Path $Folder
+
+          # Copy plugins and README
+          Copy-Item $VST3_BUNDLE -Destination $Folder -Recurse
+          Copy-Item $CLAP_BUNDLE -Destination $Folder -Recurse
+          Copy-Item "../.github/workflows/readme-${{ matrix.name }}.txt" -Destination $Folder
+
+          # Create zip
+          Compress-Archive -Path $Folder\* -DestinationPath $ZipName -Force
+
+          # Export ZIP_NAME for later steps
+          "ZIP_NAME=$ZipName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "ZIP_NAME=$ZipName" # optionally set as env
+
+      - name: Sign, Notarize and ZIP
+        if: startsWith(matrix.os, 'macos')
+        env:
+          APPLE_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARY_PASSWORD }}
+          APPLE_NOTARY_USER: ${{ secrets.APPLE_NOTARY_USER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DEVELOPER_ID: ${{ secrets.APPLE_DEVELOPER_ID }}
+        run: |
+          VST3_BUNDLE="target/bundled/grainiac_plugin_gui.vst3"
+          CLAP_BUNDLE="target/bundled/grainiac_plugin_gui.clap"
+          AU_BUNDLE="../grainiac_au/build/Grainiac.component"
+          ZIP_NAME="Grainiac-${{ matrix.name }}.zip"
+          FOLDER="grainiac-${{ matrix.name }}"
+
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+          for BUNDLE in "$VST3_BUNDLE" "$CLAP_BUNDLE" "$AU_BUNDLE"; do
+            codesign \
+              --force \
+              --keychain ${{ steps.keychain.outputs.keychain-path }} \
+              -s "${APPLE_DEVELOPER_ID}" \
+              -v "${BUNDLE}" \
+              --deep \
+              --strict \
+              --options=runtime \
+              --timestamp
+          done
+
+          mkdir "$FOLDER"
+
+          cp -R "$VST3_BUNDLE" "$FOLDER"
+          cp -R "$CLAP_BUNDLE"  "$FOLDER"
+          cp -R "$AU_BUNDLE"    "$FOLDER"
+          zip -r "$ZIP_NAME" "$FOLDER"
+
+          xcrun notarytool submit "$ZIP_NAME" \
+          --apple-id "${APPLE_NOTARY_USER}" \
+          --team-id "${APPLE_TEAM_ID}" \
+          --password "${APPLE_NOTARY_PASSWORD}" \
+          --wait
+
+          rm "$ZIP_NAME"
+
+          xcrun stapler staple "${FOLDER}/grainiac_plugin_gui.vst3"
+          xcrun stapler staple "${FOLDER}/grainiac_plugin_gui.clap"
+          xcrun stapler staple "${FOLDER}/Grainiac.component"
+
+          cp ../.github/workflows/readme-${{ matrix.name }}.txt "$FOLDER"
+          zip -r "$ZIP_NAME" "$FOLDER"
+
+      # UPLOAD
+      #
+      - name: Upload to server via SSH
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          mkdir -p ~/.ssh
+
+          # Disable host key checking for GitHub runners (optional but useful)
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+
+          ssh_dir="/home/christian/releases/plugins/grainiac/${{ github.ref_name }}"
+
+          # Create remote directory if it doesn't exist
+          ssh -i private_key "$SSH_USER@$SSH_SERVER" "mkdir -p ${ssh_dir}"
+
+          # Upload the file
+          scp -i private_key \
+            "$ZIP_NAME" \
+            "$SSH_USER@$SSH_SERVER:${ssh_dir}"
+
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_SERVER: ${{ secrets.SSH_SERVER }}

@@ -299,6 +299,9 @@ impl Sampler {
             } else {
                 instance.state.play_dir = PlayDirection::Backward;
             }
+            for voice in instance.voices.iter_mut() {
+                voice.set_play_direction(instance.state.play_dir.clone());
+            }
         }
     }
 
@@ -308,6 +311,17 @@ impl Sampler {
                 instance.state.grain_dir = PlayDirection::Forward;
             } else {
                 instance.state.grain_dir = PlayDirection::Backward;
+            }
+            for voice in instance.voices.iter_mut() {
+                voice.set_grain_direction(instance.state.grain_dir.clone());
+            }
+        }
+    }
+
+    pub fn set_hold(&mut self, index: usize, value: bool) {
+        if let Some(instance) = self.instances.get_mut(index) {
+            if instance.state.is_hold != value {
+                instance.toggle_hold();
             }
         }
     }

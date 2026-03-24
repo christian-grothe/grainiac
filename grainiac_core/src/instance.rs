@@ -139,23 +139,22 @@ impl Instance {
     }
 
     pub fn load_audio(&mut self, samples: Vec<f32>) {
-        let sample_num = samples.len();
+        let sample_num = samples.len().min(self.max_buffer_size);
+        let samples = &samples[..sample_num];
 
-        if sample_num <= self.max_buffer_size {
-            for voice in self.voices.iter_mut() {
-                voice.resize(sample_num);
-                voice.set_play_speed(self.state.play_speed);
-            }
-
-            self.current_buffer_size = sample_num;
-
-            self.buffer_to_draw.resize(sample_num);
-            for sample in samples.iter() {
-                self.buffer_to_draw.update(*sample);
-            }
-
-            self.buffer[..samples.len()].copy_from_slice(&samples);
+        for voice in self.voices.iter_mut() {
+            voice.resize(sample_num);
+            voice.set_play_speed(self.state.play_speed);
         }
+
+        self.current_buffer_size = sample_num;
+
+        self.buffer_to_draw.resize(sample_num);
+        for sample in samples.iter() {
+            self.buffer_to_draw.update(*sample);
+        }
+
+        self.buffer[..sample_num].copy_from_slice(samples);
     }
 
     pub fn render(&mut self, input_sample: &f32) -> (f32, f32) {

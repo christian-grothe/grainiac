@@ -1,5 +1,5 @@
 [package]
-name = "grainiac_plugin_gui"
+name = "grainiac"
 version = "0.1.0"
 edition = "2021"
 authors = ["Christian Grothe <christian.grothe@posteo.de>"]
@@ -15,6 +15,7 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 crossbeam = "0.8.4"
+serde = { version = "1", features = ["derive"] }
 grainiac_core = { path = "../grainiac_core"}
 hound = "3.5.1"
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs","standalone"] }

@@ -28,7 +28,11 @@ impl Data {
             .pick_file();
 
         if let Some(path) = file {
+            let path_str = path.to_string_lossy().to_string();
             if let Some(samples) = utils::AudioHandler::open(path) {
+                if let Ok(mut paths) = self.params.audio_paths.lock() {
+                    paths[index] = Some(path_str);
+                }
                 self.sender
                     .send(FileMessage::LoadAudio(samples, index))
                     .unwrap();
@@ -132,14 +136,14 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
 
 fn instance(cx: &mut Context, index: usize) {
     HStack::new(cx, |cx| {
-        Select::new(cx, "grain dir", 3, Data::params, move |params| {
+        Select::new(cx, "grain dir", 2, Data::params, move |params| {
             &params.instances[index].g_dir
         })
         .width(Pixels(160.0))
         .left(Pixels(15.0))
         .right(Pixels(15.0));
 
-        Select::new(cx, "play dir", 3, Data::params, move |params| {
+        Select::new(cx, "play dir", 2, Data::params, move |params| {
             &params.instances[index].p_dir
         })
         .width(Pixels(160.0))

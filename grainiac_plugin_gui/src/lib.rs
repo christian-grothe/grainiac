@@ -2,6 +2,7 @@ use crossbeam::channel::{bounded, Receiver, Sender};
 use grainiac_core::*;
 use nih_plug::prelude::*;
 use nih_plug_vizia::ViziaState;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 mod editor;
@@ -24,7 +25,6 @@ pub enum FileMessage {
 pub enum PlayDirection {
     Forward,
     Backward,
-    BackAndForth,
 }
 
 impl Enum for PlayDirection {
@@ -32,26 +32,23 @@ impl Enum for PlayDirection {
         match self {
             PlayDirection::Forward => 0,
             PlayDirection::Backward => 1,
-            PlayDirection::BackAndForth => 2,
         }
     }
 
     fn from_index(index: usize) -> Self {
         if index == 0 {
             PlayDirection::Forward
-        } else if index == 1 {
-            PlayDirection::Backward
         } else {
-            PlayDirection::BackAndForth
+            PlayDirection::Backward
         }
     }
 
     fn ids() -> Option<&'static [&'static str]> {
-        Some(&["forward", "backward", "back_and_forth"])
+        Some(&["forward", "backward"])
     }
 
     fn variants() -> &'static [&'static str] {
-        &["", "", ""]
+        &["", ""]
     }
 }
 
@@ -206,6 +203,9 @@ struct GrainiacParams {
     #[persist = "editor-state"]
     editor_state: Arc<ViziaState>,
 
+    #[persist = "audio-paths"]
+    audio_paths: Arc<Mutex<Vec<Option<String>>>>,
+
     #[nested(array, group = "instances")]
     instances: [InstanceParams; 2],
 }
@@ -229,6 +229,7 @@ impl Default for GrainiacParams {
     fn default() -> Self {
         Self {
             editor_state: editor::default_state(),
+            audio_paths: Arc::new(Mutex::new(vec![None; 2])),
             instances: [(); 2].map(|_| InstanceParams::new()),
         }
     }
@@ -290,9 +291,14 @@ impl Plugin for Grainiac {
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
-        // Resize buffers and perform other potentially expensive initialization operations here.
-        // The `reset()` function is always called right after this function. You can remove this
-        // function if you do not need it.
+        let paths = self.params.audio_paths.lock().unwrap().clone();
+        for (i, path) in paths.iter().enumerate() {
+            if let Some(path_str) = path {
+                if let Some(samples) = utils::AudioHandler::open(PathBuf::from(path_str)) {
+                    self.sampler.load_buf(samples, i);
+                }
+            }
+        }
         true
     }
 
@@ -325,12 +331,14 @@ impl Plugin for Grainiac {
             self.sampler.set_spread(i, instance.spread.value());
             self.sampler.set_grain_dir_from_preset(
                 i,
-                (instance.g_dir.unmodulated_normalized_value() * 3.0) as u8,
+                (instance.g_dir.unmodulated_normalized_value() * 2.0) as u8,
             );
             self.sampler.set_play_dir_from_preset(
                 i,
-                (instance.p_dir.unmodulated_normalized_value() * 3.0) as u8,
+                (instance.p_dir.unmodulated_normalized_value() * 2.0) as u8,
             );
+            self.sampler
+                .set_hold(i, instance.hold.value() == Hold::On);
         }
 
         if let Ok(msg) = self.receiver.try_recv() {
@@ -380,9 +388,7 @@ impl ClapPlugin for Grainiac {
 impl Vst3Plugin for Grainiac {
     const VST3_CLASS_ID: [u8; 16] = *b"GrainiacGranular";
 
-    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[
-        Vst3SubCategory::Instrument,
-    ];
+    const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] = &[Vst3SubCategory::Instrument];
 }
 
 nih_export_clap!(Grainiac);
