@@ -20,10 +20,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - { name: linux, os: ubuntu-latest, cross-target: "" }
+          - { name: linux, os: ubuntu-latest, cross-target: "" }
           - { name: macos_aarch64, os: macos-15, cross-target: "" }
-          # - { name: macos_x86_64, os: macos-15-intel, cross-target: "" }
-          # - { name: windows, os: windows-2025, cross-target: "" }
+          - { name: macos_x86_64, os: macos-15-intel, cross-target: "" }
+          - { name: windows, os: windows-2025, cross-target: "" }
 
     name: Build Test Packaging Deploy
     runs-on: ${{ matrix.os }}
