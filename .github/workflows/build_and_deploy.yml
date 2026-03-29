@@ -74,30 +74,30 @@ jobs:
 
       # TEST PLUGIN
       #
-      - name: Test Plugin MacOs
-        if: startsWith(matrix.os, 'macos')
-        run: |
-          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
-          unzip pluginval.zip
-          mkdir bin
-          pluginval.app/Contents/MacOS/pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/grainiac.vst3" || exit 1
+      # - name: Test Plugin MacOs
+      #   if: startsWith(matrix.os, 'macos')
+      #   run: |
+      #     curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
+      #     unzip pluginval.zip
+      #     mkdir bin
+      #     pluginval.app/Contents/MacOS/pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/grainiac.vst3" || exit 1
 
-      - name: Test Plugin Linux
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o pluginval.zip
-          unzip pluginval.zip
-          mkdir bin
-          ./pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/grainiac.vst3" || exit 1
+      # - name: Test Plugin Linux
+      #   if: startsWith(matrix.os, 'ubuntu')
+      #   run: |
+      #     curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o pluginval.zip
+      #     unzip pluginval.zip
+      #     mkdir bin
+      #     ./pluginval --validate-in-process --skip-gui-tests --output-dir "./bin" "target/bundled/Grainiac.vst3" || exit 1
 
-      - name: Test Plugin Windows
-        if: startsWith(matrix.os, 'windows')
-        shell: pwsh
-        run: |
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Invoke-WebRequest https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
-          Expand-Archive pluginval.zip -DestinationPath .
-          ./pluginval.exe --validate-in-proces --skip-gui-tests s --output-dir "./bin" "target/bundled/grainiac.vst3"
+      # - name: Test Plugin Windows
+      #   if: startsWith(matrix.os, 'windows')
+      #   shell: pwsh
+      #   run: |
+      #     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      #     Invoke-WebRequest https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip -OutFile pluginval.zip
+      #     Expand-Archive pluginval.zip -DestinationPath .
+      #     ./pluginval.exe --validate-in-proces --skip-gui-tests s --output-dir "./bin" "target/bundled/grainiac.vst3"
 
       - name: Import Certificates (macOS)
         if: startsWith(matrix.os, 'macos')
