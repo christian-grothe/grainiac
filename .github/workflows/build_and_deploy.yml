@@ -110,8 +110,8 @@ jobs:
       - name: ZIP for Linux
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          VST3_BUNDLE="target/bundled/grainiac.vst3"
-          CLAP_BUNDLE="target/bundled/grainiac.clap"
+          VST3_BUNDLE="target/bundled/Grainiac.vst3"
+          CLAP_BUNDLE="target/bundled/Grainiac.clap"
           ZIP_NAME="Grainiac-${{ matrix.name }}.zip"
           FOLDER="grainiac-${{ matrix.name }}"
 
@@ -128,8 +128,8 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: pwsh
         run: |
-          $VST3_BUNDLE = "target/bundled/grainiac.vst3"
-          $CLAP_BUNDLE = "target/bundled/grainiac.clap"
+          $VST3_BUNDLE = "target/bundled/Grainiac.vst3"
+          $CLAP_BUNDLE = "target/bundled/Grainiac.clap"
           $Folder = "grainiac-${{ matrix.name }}"
           $ZipName = "Grainiac-${{ matrix.name }}.zip"
 
