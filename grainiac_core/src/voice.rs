@@ -113,8 +113,11 @@ impl Voice {
     }
 
     pub fn set_play_direction(&mut self, play_direction: PlayDirection) {
+        let entering_back_and_forth =
+            !matches!(self.play_dircetion, PlayDirection::BackAndForth)
+                && matches!(play_direction, PlayDirection::BackAndForth);
         self.play_dircetion = play_direction;
-        if matches!(play_direction, PlayDirection::BackAndForth) {
+        if entering_back_and_forth {
             self.play_back_and_forth_forward = true;
         }
     }
