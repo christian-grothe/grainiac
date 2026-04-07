@@ -124,7 +124,7 @@ fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, inde
         .border_width(Pixels(0.0))
         .class("button");
 
-        Waveform::new(cx, draw_data.clone(), index);
+        Waveform::new(cx, draw_data.clone(), Data::params, index);
     })
     .left(Pixels(15.0))
     .right(Pixels(15.0))
