@@ -1,32 +1,172 @@
 :root {
-  /* background-color: #1b3c53; */
-  background-color: #222831;
-  color: #eeeeee;
+  --bg-highlight: #132033;
+  --bg-base: #070c16;
+  --surface: rgba(15, 24, 36, 0.88);
+  --surface-strong: rgba(18, 30, 46, 0.94);
+  --surface-soft: rgba(22, 38, 58, 0.74);
+  --accent: #4fdcc6;
+  --accent-strong: #7df8e1;
+  --accent-soft: rgba(79, 220, 198, 0.18);
+  --outline: rgba(136, 192, 255, 0.18);
+  --text-strong: #f0f7ff;
+  --text-muted: #8ea5c5;
+  background-image: radial-gradient(circle at 15% 15%, rgba(46, 86, 138, 0.35), transparent 62%), linear-gradient(160deg, #0a121f, #05070d 65%, #0b141f 100%);
+  background-color: var(--bg-base);
+  color: var(--text-strong);
   font-size: 18;
+  font-family: "JetBrainsMono Nerd Font", "Fira Mono", monospace;
+  letter-spacing: 0.08em;
 }
 
-.border {
-  border: 1px solid white;
+.layout {
+  padding: 36px 56px 48px;
 }
 
-.bold {
-  font-size: bold;
+.top-bar {
+  background-color: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: 22px;
+  padding: 24px 32px;
+  box-shadow: 0 24px 48px rgba(5, 10, 20, 0.55);
 }
 
-.button {
-  border-radius: 5px;
-  background-color: rgba(100, 100, 100, 0.3);
+.title {
+  font-size: 28;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-strong);
+}
+
+.subtitle {
+  font-size: 14;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.brand-mark {
+  font-size: 16;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--accent);
+}
+
+.instance-list {
+  width: 100%;
+}
+
+.instance-card {
+  background-color: var(--surface-strong);
+  border: 1px solid var(--outline);
+  border-radius: 26px;
+  padding: 28px 32px;
+  box-shadow: 0 28px 52px rgba(4, 10, 22, 0.6);
+}
+
+.instance-header {
+  align-items: center;
+}
+
+.section-heading {
+  font-size: 18;
+  text-transform: uppercase;
+  letter-spacing: 0.4em;
+  color: var(--text-muted);
+}
+
+.accent-button {
+  background-color: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 13;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  padding: 10px 22px;
+  text-transform: uppercase;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.accent-button:hover {
+  background-color: var(--accent);
+  color: #041018;
+  border-color: var(--accent-strong);
+}
+
+.control-row {
+  border-top: 1px solid var(--outline);
+  padding-top: 18px;
+  justify-content: flex-start;
+}
+
+.select-control {
+  min-width: 168px;
+  background-color: rgba(255, 255, 255, 0.02);
   border-radius: 15px;
-  transition: background-color 0.25s;
-  font-size: 18;
-  font-weight: bold;
+  border: 1px solid var(--outline);
+  padding: 6px 14px;
 }
 
-.button:hover {
-  background-color: rgba(150, 100, 100, 0.7);
-  transition: background-color 0.1s;
+.select .button {
+  background-color: transparent;
+  border: none;
+  padding: 0;
 }
 
-.bar {
-  background-color: rgba(100, 100, 100, 0.2);
+.select .label {
+  font-size: 13;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--text-muted);
+}
+
+.select .val {
+  font-size: 16;
+  letter-spacing: 0.2em;
+  color: var(--text-strong);
+}
+
+.dial-grid {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.dial-column {
+  min-width: 132px;
+}
+
+.dial-block {
+  background-color: var(--surface-soft);
+  border: 1px solid var(--outline);
+  border-radius: 18px;
+  padding: 16px 18px 22px;
+  min-width: 132px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.dial-block label {
+  font-size: 12;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--text-muted);
+}
+
+.dial-block label:last-child {
+  font-size: 14;
+  color: var(--text-strong);
+}
+
+.waveform-panel {
+  background-image: linear-gradient(135deg, rgba(15, 32, 52, 0.85), rgba(32, 57, 76, 0.45));
+  border: 1px solid var(--outline);
+  border-radius: 20px;
+  padding: 12px 18px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.waveform {
+  width: 100%;
+  height: 100%;
 }

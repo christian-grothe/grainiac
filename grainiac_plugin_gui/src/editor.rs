@@ -78,141 +78,189 @@ pub(crate) fn create(
 
         VStack::new(cx, |cx| {
             top_bar(cx);
-            (0..2).for_each(|i| instace_waveform(cx, draw_data.clone(), i as usize));
-        });
+            VStack::new(cx, |cx| {
+                (0..2).for_each(|i| instance_block(cx, draw_data.clone(), i as usize));
+            })
+            .class("instance-list")
+            .child_space(Pixels(28.0))
+            .width(Stretch(1.0));
+        })
+        .class("layout")
+        .child_space(Pixels(32.0))
+        .width(Stretch(1.0));
     })
 }
 
 fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
-        Label::new(cx, "timerift.")
-            .width(Stretch(1.0))
-            .font_size(25.0)
-            .text_align(TextAlign::Left);
-        Label::new(cx, "Grainiac")
-            .width(Stretch(1.0))
-            .font_size(25.0)
-            .text_align(TextAlign::Right);
+        VStack::new(cx, |cx| {
+            Label::new(cx, "Grainiac")
+                .class("title")
+                .text_align(TextAlign::Left);
+            Label::new(cx, "Granular Sampler Instrument")
+                .class("subtitle")
+                .text_align(TextAlign::Left);
+        })
+        .width(Stretch(1.0))
+        .child_space(Pixels(6.0));
+
+        Label::new(cx, "Timerift Audio")
+            .class("brand-mark")
+            .text_align(TextAlign::Right)
+            .width(Stretch(0.5));
     })
-    .child_bottom(Stretch(1.0))
-    .child_top(Stretch(1.0))
-    .child_left(Pixels(15.0))
-    .child_right(Pixels(15.0))
-    .bottom(Pixels(20.0))
-    .height(Pixels(40.0))
-    .width(Stretch(1.0))
-    .class("bar");
+    .class("top-bar")
+    .child_space(Pixels(12.0))
+    .child_left(Pixels(24.0))
+    .child_right(Pixels(24.0))
+    .width(Stretch(1.0));
 }
 
-fn instace_waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
-    instance(cx, index);
-    waveform(cx, draw_data.clone(), index);
+fn instance_block(
+    cx: &mut Context,
+    draw_data: Arc<Mutex<Output<Vec<DrawData>>>>,
+    index: usize,
+) {
+    let title = match index {
+        0 => "Layer A",
+        1 => "Layer B",
+        _ => "Layer",
+    };
+
+    VStack::new(cx, |cx| {
+        HStack::new(cx, |cx| {
+            Label::new(cx, title).class("section-heading");
+            Button::new(
+                cx,
+                move |ex| {
+                    ex.emit(FileMessage::OpenFileDialog(index));
+                },
+                |cx| Label::new(cx, "Load Audio"),
+            )
+            .class("accent-button")
+            .height(Pixels(38.0));
+        })
+        .class("instance-header")
+        .child_space(Pixels(12.0));
+
+        waveform_panel(cx, draw_data.clone(), index);
+
+        control_row(cx, index);
+        dial_grid(cx, index);
+    })
+    .class("instance-card")
+    .child_space(Pixels(18.0));
 }
 
-fn waveform(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
+fn waveform_panel(cx: &mut Context, draw_data: Arc<Mutex<Output<Vec<DrawData>>>>, index: usize) {
     ZStack::new(cx, |cx| {
-        Button::new(
-            cx,
-            move |ex| {
-                ex.emit(FileMessage::OpenFileDialog(index));
-            },
-            |cx| Label::new(cx, "open"),
-        )
-        .position_type(PositionType::SelfDirected)
-        .z_index(10)
-        .color(Color::white())
-        .border_width(Pixels(0.0))
-        .class("button");
-
         Waveform::new(cx, draw_data.clone(), index);
     })
-    .left(Pixels(15.0))
-    .right(Pixels(15.0))
-    .top(Pixels(15.0))
-    .bottom(Pixels(25.0))
-    .height(Pixels(100.0))
-    .class("waveform");
+    .class("waveform-panel")
+    .height(Pixels(160.0));
 }
 
-fn instance(cx: &mut Context, index: usize) {
+fn control_row(cx: &mut Context, index: usize) {
     HStack::new(cx, |cx| {
-        Select::new(cx, "grain dir", 2, Data::params, move |params| {
+        Select::new(cx, "Grain Dir", 2, Data::params, move |params| {
             &params.instances[index].g_dir
         })
-        .width(Pixels(160.0))
-        .left(Pixels(15.0))
-        .right(Pixels(15.0));
+        .class("select-control");
 
-        Select::new(cx, "play dir", 2, Data::params, move |params| {
+        Select::new(cx, "Play Dir", 2, Data::params, move |params| {
             &params.instances[index].p_dir
         })
-        .width(Pixels(160.0))
-        .right(Pixels(15.0));
+        .class("select-control");
 
         Select::new(cx, "Hold", 2, Data::params, move |params| {
             &params.instances[index].hold
         })
-        .width(Pixels(130.0));
+        .class("select-control");
     })
-    .height(Pixels(40.0))
-    .bottom(Pixels(10.0));
+    .class("control-row")
+    .child_space(Pixels(18.0));
+}
 
+fn dial_grid(cx: &mut Context, index: usize) {
     HStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
-            Dial::new(cx, "loop start", Data::params, move |params| {
+            Dial::new(cx, "Loop Start", Data::params, move |params| {
                 &params.instances[index].loop_start
-            });
-            Dial::new(cx, "loop end", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Loop End", Data::params, move |params| {
                 &params.instances[index].loop_length
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
 
         VStack::new(cx, |cx| {
-            Dial::new(cx, "dens", Data::params, move |params| {
+            Dial::new(cx, "Density", Data::params, move |params| {
                 &params.instances[index].density
-            });
-            Dial::new(cx, "grain_length", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Grain Length", Data::params, move |params| {
                 &params.instances[index].grain_length
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
 
         VStack::new(cx, |cx| {
-            Dial::new(cx, "play speed", Data::params, move |params| {
+            Dial::new(cx, "Play Speed", Data::params, move |params| {
                 &params.instances[index].play_speed
-            });
-            Dial::new(cx, "spray", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Spray", Data::params, move |params| {
                 &params.instances[index].spray
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
 
         VStack::new(cx, |cx| {
-            Dial::new(cx, "pan", Data::params, move |params| {
+            Dial::new(cx, "Pan", Data::params, move |params| {
                 &params.instances[index].pan
-            });
-            Dial::new(cx, "spread", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Spread", Data::params, move |params| {
                 &params.instances[index].spread
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
 
         VStack::new(cx, |cx| {
-            Dial::new(cx, "att", Data::params, move |params| {
+            Dial::new(cx, "Attack", Data::params, move |params| {
                 &params.instances[index].attack
-            });
-            Dial::new(cx, "rel", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Release", Data::params, move |params| {
                 &params.instances[index].release
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
 
         VStack::new(cx, |cx| {
-            Dial::new(cx, "pitch", Data::params, move |params| {
+            Dial::new(cx, "Pitch", Data::params, move |params| {
                 &params.instances[index].pitch
-            });
-            Dial::new(cx, "gain", Data::params, move |params| {
+            })
+            .class("dial-block");
+            Dial::new(cx, "Gain", Data::params, move |params| {
                 &params.instances[index].gain
-            });
-        });
+            })
+            .class("dial-block");
+        })
+        .class("dial-column")
+        .child_space(Pixels(16.0));
     })
-    .text_align(TextAlign::Center)
-    .left(Pixels(15.0))
-    .right(Pixels(15.0));
+    .class("dial-grid")
+    .child_space(Pixels(20.0));
 }

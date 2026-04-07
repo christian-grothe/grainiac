@@ -82,22 +82,36 @@ impl View for DialBase {
         let center_x = bounds.x + bounds.w * 0.5;
         let center_y = bounds.y + bounds.h * 0.5;
 
-        let radius = bounds.w.min(bounds.h) * 0.5;
+        let radius = bounds.w.min(bounds.h) * 0.45;
 
         let start_angle = PI * 0.75;
         let end_angle = PI * 2.25;
 
-        let mut paint = Paint::color(Color::rgb(218, 108, 108));
-        let mut path = Path::new();
+        let mut track = Paint::color(Color::rgba(82, 116, 154, 120));
+        track.set_line_width(6.0);
 
-        paint.set_line_width(4.0);
+        let mut path = Path::new();
+        path.arc(
+            center_x,
+            center_y,
+            radius,
+            start_angle,
+            end_angle,
+            Solidity::Hole,
+        );
+
+        canvas.stroke_path(&path, &track);
+
+        let mut paint = Paint::color(Color::hex("#4FDCC6"));
+        paint.set_line_width(6.0);
 
         let angle = start_angle + (end_angle - start_angle) * val;
 
         let line_to_x = center_x + radius * angle.cos();
         let line_to_y = center_y + radius * angle.sin();
 
-        path.arc(
+        let mut arc_path = Path::new();
+        arc_path.arc(
             center_x,
             center_y,
             radius,
@@ -106,18 +120,27 @@ impl View for DialBase {
             Solidity::Hole,
         );
 
-        path.move_to(center_x, center_y);
-        path.line_to(line_to_x, line_to_y);
+        canvas.stroke_path(&arc_path, &paint);
 
-        canvas.stroke_path(&path, &paint);
+        let mut indicator = Paint::color(Color::hex("#7DF8E1"));
+        indicator.set_line_width(2.0);
 
-        let mut paint = Paint::color(Color::white());
-        paint.set_line_width(1.0);
+        let mut pointer = Path::new();
+        pointer.move_to(center_x, center_y);
+        pointer.line_to(line_to_x, line_to_y);
 
-        let mut path = Path::new();
-        path.arc(center_x, center_y, radius, angle, end_angle, Solidity::Hole);
+        canvas.stroke_path(&pointer, &indicator);
 
-        canvas.stroke_path(&path, &paint);
+        let mut hub = Paint::color(Color::rgba(9, 18, 28, 200));
+        let mut hub_path = Path::new();
+        hub_path.arc(center_x, center_y, radius * 0.35, 0.0, PI * 2.0, Solidity::Solid);
+        canvas.fill_path(&hub_path, &hub);
+
+        let mut hub_ring = Paint::color(Color::rgba(125, 248, 225, 45));
+        hub_ring.set_line_width(2.0);
+        let mut hub_ring_path = Path::new();
+        hub_ring_path.arc(center_x, center_y, radius * 0.38, 0.0, PI * 2.0, Solidity::Hole);
+        canvas.stroke_path(&hub_ring_path, &hub_ring);
     }
 }
 
