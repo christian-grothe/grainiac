@@ -12,6 +12,7 @@ use super::grain::Grain;
 pub enum PlayDirection {
     Forward,
     Backward,
+    BackAndForth,
 }
 
 impl Default for PlayDirection {
@@ -72,6 +73,7 @@ pub struct Voice {
     pan: f32,
     grain_length: f32,
     grain_data: Vec<GrainData>,
+    play_back_and_forth_forward: bool,
 }
 
 impl Voice {
@@ -102,6 +104,7 @@ impl Voice {
             spread: 1.0,
             spray: 0.0,
             pan: 0.0,
+            play_back_and_forth_forward: true,
         }
     }
 
@@ -111,6 +114,9 @@ impl Voice {
 
     pub fn set_play_direction(&mut self, play_direction: PlayDirection) {
         self.play_dircetion = play_direction;
+        if matches!(play_direction, PlayDirection::BackAndForth) {
+            self.play_back_and_forth_forward = true;
+        }
     }
 
     pub fn set_grain_direction(&mut self, grain_direction: PlayDirection) {
@@ -167,6 +173,7 @@ impl Voice {
         self.midi_note = midi_note;
         self.pitch = 2.0f32.powf((midi_note as f32 - 60.0) / 12.0);
         self.play_pos = loop_start_abs as f32;
+        self.play_back_and_forth_forward = true;
         self.env.set_state(EnvelopeState::Attack);
     }
 
@@ -216,6 +223,27 @@ impl Voice {
                 if self.play_pos < loop_start_abs {
                     self.play_pos = loop_end_abs;
                     self.anti_clip.state = EnvelopeState::Attack;
+                }
+            }
+            PlayDirection::BackAndForth => {
+                let step = match mode {
+                    Mode::Grain => self.speed,
+                    Mode::Tape => self.pitch,
+                };
+                let max_loop_end = loop_end_abs.min(self.buffersize.saturating_sub(1) as f32);
+
+                if self.play_back_and_forth_forward {
+                    self.play_pos += step;
+                    if self.play_pos >= max_loop_end {
+                        self.play_pos = max_loop_end;
+                        self.play_back_and_forth_forward = false;
+                    }
+                } else {
+                    self.play_pos -= step;
+                    if self.play_pos <= loop_start_abs {
+                        self.play_pos = loop_start_abs;
+                        self.play_back_and_forth_forward = true;
+                    }
                 }
             }
         }

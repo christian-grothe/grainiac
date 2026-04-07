@@ -294,11 +294,11 @@ impl Sampler {
 
     pub fn set_play_dir_from_preset(&mut self, index: usize, value: u8) {
         if let Some(instance) = self.instances.get_mut(index) {
-            if value == 0 {
-                instance.state.play_dir = PlayDirection::Forward;
-            } else {
-                instance.state.play_dir = PlayDirection::Backward;
-            }
+            instance.state.play_dir = match value {
+                0 => PlayDirection::Forward,
+                1 => PlayDirection::Backward,
+                _ => PlayDirection::BackAndForth,
+            };
             for voice in instance.voices.iter_mut() {
                 voice.set_play_direction(instance.state.play_dir.clone());
             }
@@ -307,11 +307,11 @@ impl Sampler {
 
     pub fn set_grain_dir_from_preset(&mut self, index: usize, value: u8) {
         if let Some(instance) = self.instances.get_mut(index) {
-            if value == 0 {
-                instance.state.grain_dir = PlayDirection::Forward;
-            } else {
-                instance.state.grain_dir = PlayDirection::Backward;
-            }
+            instance.state.grain_dir = match value {
+                0 => PlayDirection::Forward,
+                1 => PlayDirection::Backward,
+                _ => PlayDirection::BackAndForth,
+            };
             for voice in instance.voices.iter_mut() {
                 voice.set_grain_direction(instance.state.grain_dir.clone());
             }
@@ -330,7 +330,8 @@ impl Sampler {
         if let Some(instance) = self.instances.get_mut(index) {
             match instance.state.play_dir {
                 PlayDirection::Forward => instance.state.play_dir = PlayDirection::Backward,
-                PlayDirection::Backward => instance.state.play_dir = PlayDirection::Forward,
+                PlayDirection::Backward => instance.state.play_dir = PlayDirection::BackAndForth,
+                PlayDirection::BackAndForth => instance.state.play_dir = PlayDirection::Forward,
             }
             for voice in instance.voices.iter_mut() {
                 voice.set_play_direction(instance.state.play_dir.clone());
@@ -342,7 +343,8 @@ impl Sampler {
         if let Some(instance) = self.instances.get_mut(index) {
             match instance.state.grain_dir {
                 PlayDirection::Forward => instance.state.grain_dir = PlayDirection::Backward,
-                PlayDirection::Backward => instance.state.grain_dir = PlayDirection::Forward,
+                PlayDirection::Backward => instance.state.grain_dir = PlayDirection::BackAndForth,
+                PlayDirection::BackAndForth => instance.state.grain_dir = PlayDirection::Forward,
             }
             for voice in instance.voices.iter_mut() {
                 voice.set_grain_direction(instance.state.grain_dir.clone());

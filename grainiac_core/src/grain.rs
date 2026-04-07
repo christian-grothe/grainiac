@@ -21,6 +21,7 @@ pub struct Grain {
     gain: f32,
     stereo_pos: f32,
     grain_direction: PlayDirection,
+    back_and_forth_forward: bool,
 }
 
 impl Grain {
@@ -41,6 +42,7 @@ impl Grain {
         self.buffersize = buffersize;
         self.stereo_pos = stereo_pos;
         self.grain_direction = grain_direction;
+        self.back_and_forth_forward = true;
     }
 
     pub fn update(&mut self, gain: f32) -> GrainData {
@@ -57,6 +59,22 @@ impl Grain {
 
                 if self.pos <= 0.0 {
                     self.pos = self.buffersize as f32;
+                }
+            }
+            PlayDirection::BackAndForth => {
+                let max_pos = self.buffersize.saturating_sub(1) as f32;
+                if self.back_and_forth_forward {
+                    self.pos += self.pitch;
+                    if self.pos >= max_pos {
+                        self.pos = max_pos;
+                        self.back_and_forth_forward = false;
+                    }
+                } else {
+                    self.pos -= self.pitch;
+                    if self.pos <= 0.0 {
+                        self.pos = 0.0;
+                        self.back_and_forth_forward = true;
+                    }
                 }
             }
         }

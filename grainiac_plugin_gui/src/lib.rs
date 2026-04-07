@@ -25,6 +25,7 @@ pub enum FileMessage {
 pub enum PlayDirection {
     Forward,
     Backward,
+    BackAndForth,
 }
 
 impl Enum for PlayDirection {
@@ -32,23 +33,26 @@ impl Enum for PlayDirection {
         match self {
             PlayDirection::Forward => 0,
             PlayDirection::Backward => 1,
+            PlayDirection::BackAndForth => 2,
         }
     }
 
     fn from_index(index: usize) -> Self {
         if index == 0 {
             PlayDirection::Forward
-        } else {
+        } else if index == 1 {
             PlayDirection::Backward
+        } else {
+            PlayDirection::BackAndForth
         }
     }
 
     fn ids() -> Option<&'static [&'static str]> {
-        Some(&["forward", "backward"])
+        Some(&["forward", "backward", "back_and_forth"])
     }
 
     fn variants() -> &'static [&'static str] {
-        &["", ""]
+        &["", "", ""]
     }
 }
 
@@ -331,11 +335,11 @@ impl Plugin for Grainiac {
             self.sampler.set_spread(i, instance.spread.value());
             self.sampler.set_grain_dir_from_preset(
                 i,
-                (instance.g_dir.unmodulated_normalized_value() * 2.0) as u8,
+                instance.g_dir.value().to_index() as u8,
             );
             self.sampler.set_play_dir_from_preset(
                 i,
-                (instance.p_dir.unmodulated_normalized_value() * 2.0) as u8,
+                instance.p_dir.value().to_index() as u8,
             );
             self.sampler
                 .set_hold(i, instance.hold.value() == Hold::On);
