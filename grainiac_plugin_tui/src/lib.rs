@@ -333,14 +333,10 @@ impl Plugin for Grainiac {
             );
         }
 
-        if let Ok(msg) = self.receiver.try_recv() {
-            match msg {
-                FileMessage::LoadAudio(samples, index) => {
-                    self.sampler.load_buf(samples, index);
-                }
-                _ => {}
+        if let Ok(msg) = self.receiver.try_recv()
+            && let FileMessage::LoadAudio(samples, index) = msg {
+                self.sampler.load_buf(samples, index);
             }
-        }
 
         let mut next_event = context.next_event();
         while let Some(event) = next_event {

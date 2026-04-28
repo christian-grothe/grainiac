@@ -300,7 +300,7 @@ impl Sampler {
                 instance.state.play_dir = PlayDirection::Backward;
             }
             for voice in instance.voices.iter_mut() {
-                voice.set_play_direction(instance.state.play_dir.clone());
+                voice.set_play_direction(instance.state.play_dir);
             }
         }
     }
@@ -313,7 +313,7 @@ impl Sampler {
                 instance.state.grain_dir = PlayDirection::Backward;
             }
             for voice in instance.voices.iter_mut() {
-                voice.set_grain_direction(instance.state.grain_dir.clone());
+                voice.set_grain_direction(instance.state.grain_dir);
             }
         }
     }
@@ -333,7 +333,7 @@ impl Sampler {
                 PlayDirection::Backward => instance.state.play_dir = PlayDirection::Forward,
             }
             for voice in instance.voices.iter_mut() {
-                voice.set_play_direction(instance.state.play_dir.clone());
+                voice.set_play_direction(instance.state.play_dir);
             }
         }
     }
@@ -345,7 +345,7 @@ impl Sampler {
                 PlayDirection::Backward => instance.state.grain_dir = PlayDirection::Forward,
             }
             for voice in instance.voices.iter_mut() {
-                voice.set_grain_direction(instance.state.grain_dir.clone());
+                voice.set_grain_direction(instance.state.grain_dir);
             }
         }
     }

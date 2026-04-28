@@ -92,8 +92,8 @@ impl State {
             KeyCode::Esc => self.exiting = true,
             KeyCode::Char('m') => self.num_mode.next(),
             KeyCode::Char('n') => self.view.next(),
-            KeyCode::Char(c) => {
-                if c.is_ascii_digit() {
+            KeyCode::Char(c)
+                if c.is_ascii_digit() => {
                     match self.num_mode {
                         NumMode::LoadPreset => {
                             if let Some(preset) = self.presets.iter().find(|p| p.char == c) {
@@ -106,7 +106,6 @@ impl State {
                         NumMode::SaveAudio => self.s.send(Msg::SaveAudio(c)).unwrap(),
                     }
                 }
-            }
             _ => {}
         }
     }

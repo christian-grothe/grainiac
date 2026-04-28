@@ -48,8 +48,8 @@ impl View for DialBase {
                 self.param_base.set_normalized_value(cx, default_val);
                 self.param_base.end_set_parameter(cx);
             }
-            WindowEvent::MouseMove(_x, y) => {
-                if self.is_clicked {
+            WindowEvent::MouseMove(_x, y)
+                if self.is_clicked => {
                     // Calculate the delta (difference) from last mouse position
                     let delta_y = self.last_mouse_y - y;
 
@@ -66,7 +66,6 @@ impl View for DialBase {
                     // Update last mouse position for next frame
                     self.last_mouse_y = *y;
                 }
-            }
             _ => {}
         });
     }

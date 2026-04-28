@@ -299,8 +299,8 @@ impl WindowHandler for RatatuiWindowHandler {
                 self.damaged = true;
                 //println!("Mouse event: {:?}", e);
             }
-            Event::Keyboard(e) => {
-                if e.state == KeyState::Down {
+            Event::Keyboard(e)
+                if e.state == KeyState::Down => {
                     match e.key {
                         Key::Character(ref s) if s == "1" => {
                             let file = FileDialog::new()
@@ -308,13 +308,12 @@ impl WindowHandler for RatatuiWindowHandler {
                                 .set_directory("/")
                                 .pick_file();
 
-                            if let Some(path) = file {
-                                if let Some(samples) = utils::AudioHandler::open(path) {
+                            if let Some(path) = file
+                                && let Some(samples) = utils::AudioHandler::open(path) {
                                     self.sender
                                         .send(FileMessage::LoadAudio(samples, 0))
                                         .unwrap();
                                 }
-                            }
                         }
                         Key::Character(ref s) if s == "2" => {
                             let file = FileDialog::new()
@@ -322,19 +321,17 @@ impl WindowHandler for RatatuiWindowHandler {
                                 .set_directory("/")
                                 .pick_file();
 
-                            if let Some(path) = file {
-                                if let Some(samples) = utils::AudioHandler::open(path) {
+                            if let Some(path) = file
+                                && let Some(samples) = utils::AudioHandler::open(path) {
                                     self.sender
                                         .send(FileMessage::LoadAudio(samples, 1))
                                         .unwrap();
                                 }
-                            }
                         }
                         _ => {}
                     }
                     //println!("Keyboard event: {:?}", e);
                 }
-            }
             _ => {}
         }
 

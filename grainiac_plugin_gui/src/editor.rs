@@ -43,11 +43,8 @@ impl Data {
 
 impl Model for Data {
     fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
-        event.map(|data_event, _meta| match data_event {
-            FileMessage::OpenFileDialog(index) => {
-                self.open_file_dialog(*index);
-            }
-            _ => {}
+        event.map(|data_event, _meta| if let FileMessage::OpenFileDialog(index) = data_event {
+            self.open_file_dialog(*index);
         });
     }
 }

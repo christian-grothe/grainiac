@@ -39,7 +39,7 @@ impl Instance {
             voices: {
                 let mut voices: Vec<Voice> = Vec::with_capacity(VOICE_NUM);
                 for _ in 0..VOICE_NUM {
-                    voices.push(Voice::new(sample_rate, loop_area.clone()));
+                    voices.push(Voice::new(sample_rate, loop_area));
                 }
                 voices
             },
@@ -127,7 +127,7 @@ impl Instance {
 
     fn write(&mut self, sample: f32) {
         self.buffer[self.write_index] = sample;
-        self.write_index = self.write_index + 1;
+        self.write_index += 1;
 
         self.buffer_to_draw.update(sample);
 
@@ -174,8 +174,8 @@ impl Instance {
                     let next_index = (play_index_int + 1) % self.current_buffer_size;
                     let frac = voice.play_pos - play_index_int as f32;
 
-                    let next_sample = self.buffer[play_index_int] * (1.0 - frac as f32)
-                        + self.buffer[next_index] * frac as f32;
+                    let next_sample = self.buffer[play_index_int] * (1.0 - frac)
+                        + self.buffer[next_index] * frac;
 
                     output.0 += next_sample * voice.gain;
                     output.1 += next_sample * voice.gain;
