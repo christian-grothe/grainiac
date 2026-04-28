@@ -378,31 +378,26 @@ fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mappi
         x if x == mapping.gain => {
             sampler.set_gain(instance, value);
         }
-        x if x == mapping.record => {
-            if value > 0.0 {
+        x if x == mapping.record
+            && value > 0.0 => {
                 sampler.record(instance);
             }
-        }
-        x if x == mapping.hold => {
-            if value > 0.0 {
+        x if x == mapping.hold
+            && value > 0.0 => {
                 sampler.toggle_hold(instance);
             }
-        }
-        x if x == mapping.play_dir => {
-            if value > 0.0 {
+        x if x == mapping.play_dir
+            && value > 0.0 => {
                 sampler.toggle_play_dir(instance);
             }
-        }
-        x if x == mapping.grain_dir => {
-            if value > 0.0 {
+        x if x == mapping.grain_dir
+            && value > 0.0 => {
                 sampler.toggle_grain_dir(instance);
             }
-        }
-        x if x == mapping.mode => {
-            if value > 0.0 {
+        x if x == mapping.mode
+            && value > 0.0 => {
                 sampler.toggle_mode(instance);
             }
-        }
         x if x == mapping.select_l => {
             let select = value > 0.0;
             sampler.set_select_l(select);

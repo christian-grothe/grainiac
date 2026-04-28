@@ -341,13 +341,8 @@ impl Plugin for Grainiac {
                 .set_hold(i, instance.hold.value() == Hold::On);
         }
 
-        if let Ok(msg) = self.receiver.try_recv() {
-            match msg {
-                FileMessage::LoadAudio(samples, index) => {
-                    self.sampler.load_buf(samples, index);
-                }
-                _ => {}
-            }
+        if let Ok(FileMessage::LoadAudio(samples, index)) = self.receiver.try_recv() {
+            self.sampler.load_buf(samples, index);
         }
 
         let mut next_event = context.next_event();

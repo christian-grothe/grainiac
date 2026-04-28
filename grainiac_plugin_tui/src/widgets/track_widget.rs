@@ -184,7 +184,7 @@ impl Widget for Track {
             Span::from(format!("  pan:  L{:.2}  ", self.draw_data.state.pan.abs()))
                 .render(param_line_b[2], buf);
         } else {
-            Span::from(format!("  pan:   -C-   ")).render(param_line_b[2], buf);
+            Span::from("  pan:   -C-   ").render(param_line_b[2], buf);
         }
 
         Fader::new("  spr", self.draw_data.state.spread).render(param_line_c[2], buf);

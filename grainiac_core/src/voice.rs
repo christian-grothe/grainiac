@@ -9,16 +9,13 @@ use crate::{
 use super::grain::Grain;
 
 #[derive(Clone, Debug, Copy)]
+#[derive(Default)]
 pub enum PlayDirection {
+    #[default]
     Forward,
     Backward,
 }
 
-impl Default for PlayDirection {
-    fn default() -> Self {
-        PlayDirection::Forward
-    }
-}
 
 #[derive(Default)]
 pub struct PlayHead {
@@ -29,7 +26,7 @@ pub struct PlayHead {
 impl AddAssign<f32> for PlayHead {
     fn add_assign(&mut self, rhs: f32) {
         let val_int = rhs.floor();
-        let val_frac = rhs - val_int as f32;
+        let val_frac = rhs - val_int;
 
         self.index += val_int as usize;
         self.fraction = val_frac;
@@ -166,7 +163,7 @@ impl Voice {
         self.is_playing = true;
         self.midi_note = midi_note;
         self.pitch = 2.0f32.powf((midi_note as f32 - 60.0) / 12.0);
-        self.play_pos = loop_start_abs as f32;
+        self.play_pos = loop_start_abs;
         self.env.set_state(EnvelopeState::Attack);
     }
 
@@ -179,15 +176,15 @@ impl Voice {
     }
 
     pub fn render(&mut self, mode: Mode) -> Vec<GrainData> {
-        let loop_start_abs = (self.loop_start * self.buffersize as f32) as f32;
+        let loop_start_abs = self.loop_start * self.buffersize as f32 ;
         let loop_end_abs = ((self.loop_start + self.loop_length) * self.buffersize as f32)
-            .clamp(0.0, self.buffersize as f32) as f32;
+            .clamp(0.0, self.buffersize as f32);
 
         match self.play_dircetion {
             PlayDirection::Forward => {
                 self.play_pos = match mode {
-                    Mode::Grain => self.play_pos + self.speed as f32,
-                    Mode::Tape => self.play_pos + (1.0 * self.pitch as f32),
+                    Mode::Grain => self.play_pos + self.speed,
+                    Mode::Tape => self.play_pos + (1.0 * self.pitch),
                 };
 
                 if self.play_pos >= loop_end_abs - 10.0
@@ -203,8 +200,8 @@ impl Voice {
             }
             PlayDirection::Backward => {
                 self.play_pos = match mode {
-                    Mode::Grain => self.play_pos - self.speed as f32,
-                    Mode::Tape => self.play_pos - (1.0 * self.pitch) as f32,
+                    Mode::Grain => self.play_pos - self.speed,
+                    Mode::Tape => self.play_pos - (1.0 * self.pitch),
                 };
 
                 if self.play_pos <= loop_start_abs + 10.0
@@ -227,9 +224,9 @@ impl Voice {
                         as f32;
 
                 if pos < 0.0 {
-                    pos = self.buffersize as f32 + pos;
+                    pos += self.buffersize as f32;
                 } else if pos > self.buffersize as f32 {
-                    pos = pos - self.buffersize as f32;
+                    pos -= self.buffersize as f32;
                 }
 
                 let main_pitch = 2.0f32.powf(self.global_pitch as f32 / 12.0);
@@ -242,7 +239,7 @@ impl Voice {
                         self.pitch * main_pitch,
                         self.buffersize,
                         stereo_pos.clamp(-1.0, 1.0),
-                        self.grain_dircetion.clone(),
+                        self.grain_dircetion,
                     );
                     break;
                 }
@@ -300,12 +297,12 @@ impl Trigger {
             return true;
         }
 
-        self.phase = self.phase + self.speedrement;
+        self.phase += self.speedrement;
         if self.phase >= 1.0 {
             self.phase = 0.0;
             return true;
         }
-        return false;
+        false
     }
 
     fn reset(&mut self) {
