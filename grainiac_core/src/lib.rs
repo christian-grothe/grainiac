@@ -54,7 +54,7 @@ impl State {
             is_hold: false,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
-            mode: Mode::Grain,
+            mode: Mode::Tape,
         }
     }
 }
@@ -141,7 +141,7 @@ impl Sampler {
                 sample_rate,
                 input_peak: PeakFollower::new(250.0, sample_rate),
                 output_peak: PeakFollower::new(250.0, sample_rate),
-                l_select: false,
+                l_select: true,
                 r_select: true,
             },
             buf_output,
@@ -175,7 +175,8 @@ impl Sampler {
                 if instance.state.mode == Mode::Tape {
                     for (index, voice) in instance.voices.iter().enumerate() {
                         if voice.midi_note != 0 {
-                            draw_data[i].play_heads[index] = Some(voice.play_pos);
+                            draw_data[i].play_heads[index] =
+                                Some(voice.play_pos / instance.current_buffer_size as f32);
                         }
                     }
                 }

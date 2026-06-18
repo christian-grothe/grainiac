@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use brailles::{NUM_STATES, STATES, STATE_10};
 use grainiac_core::{instance::Mode, voice::PlayDirection, DrawData};
 use ratatui::{
@@ -13,16 +15,12 @@ use crate::widgets::fader_widget::Fader;
 pub mod brailles;
 
 pub struct Track {
-    label: String,
     draw_data: DrawData,
 }
 
 impl Track {
-    pub fn from(label: &str, draw_data: DrawData) -> Self {
-        Self {
-            label: label.to_string(),
-            draw_data,
-        }
+    pub fn from(draw_data: DrawData) -> Self {
+        Self { draw_data }
     }
 }
 
@@ -75,15 +73,18 @@ impl Widget for Track {
             }
         });
 
+        let mut play_pos: f32 = 0.0;
+
         // draw play heads
         self.draw_data.play_heads.iter().for_each(|pos| {
             if let Some(pos) = pos {
                 let state = STATES[NUM_STATES - 1];
-                let x = pos * self.draw_data.buffer.len() as f32;
+                let x = (*pos * self.draw_data.buffer.len() as f32) as u16 + layout[1].left();
+                play_pos = *pos;
 
                 for (index, char) in state.iter().enumerate() {
                     let char_str = char.to_string();
-                    buf[(x as u16 + layout[1].left(), layout[1].top() + index as u16)]
+                    buf[(x, layout[1].top() + index as u16)]
                         .set_style(Style::default().fg(Color::Rgb(255, 255, 186)))
                         .set_symbol(char_str.as_str());
                 }
@@ -140,59 +141,58 @@ impl Widget for Track {
         };
 
         let text = Text::from(Line::from(vec![
-            Span::styled(self.label, Style::default().bold()),
-            Span::styled("  Rec: ", Style::default().bold()),
+            Span::styled("Rec: ", Style::default().bold()),
             Span::styled(
                 is_rec,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled("  | ", Style::default().bold()),
+            Span::styled(" | ", Style::default().bold()),
             Span::styled("Hold: ", Style::default().bold()),
             Span::styled(
                 is_hold,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled("  | ", Style::default().bold()),
+            Span::styled(" | ", Style::default().bold()),
             Span::styled("Pl-Dir: ", Style::default().bold()),
             Span::styled(
                 play_dir,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled("  | ", Style::default().bold()),
+            Span::styled(" | ", Style::default().bold()),
             Span::styled("Gr-Dir: ", Style::default().bold()),
             Span::styled(
                 grain_dir,
                 Style::default().fg(Color::Rgb(186, 225, 255)).bold(),
             ),
-            Span::styled("  | ", Style::default().bold()),
+            Span::styled(" | ", Style::default().bold()),
             Span::styled("Mode: ", Style::default().bold()),
             Span::styled(mode, Style::default().fg(Color::Rgb(186, 225, 255)).bold()),
         ]));
 
         Paragraph::new(text).render(param_line_a[0], buf);
 
-        Fader::new("   den", self.draw_data.state.density / 50.0).render(param_line_b[0], buf);
-        Fader::new("   len", self.draw_data.state.grain_length).render(param_line_c[0], buf);
+        Fader::new("den", self.draw_data.state.density / 50.0).render(param_line_b[0], buf);
+        Fader::new("len", self.draw_data.state.grain_length).render(param_line_c[0], buf);
 
-        Fader::new("   spd", self.draw_data.state.play_speed / 2.0).render(param_line_b[1], buf);
-        Fader::new("   spy", self.draw_data.state.spray).render(param_line_c[1], buf);
+        Fader::new(" spd", self.draw_data.state.play_speed / 2.0).render(param_line_b[1], buf);
+        Fader::new(" spy", self.draw_data.state.spray).render(param_line_c[1], buf);
 
         if self.draw_data.state.pan > 0.0 {
-            Span::from(format!("  pan:  R{:.2}  ", self.draw_data.state.pan.abs()))
+            Span::from(format!(" pan:  R{:.2}  ", self.draw_data.state.pan.abs()))
                 .render(param_line_b[2], buf);
         } else if self.draw_data.state.pan < 0.0 {
-            Span::from(format!("  pan:  L{:.2}  ", self.draw_data.state.pan.abs()))
+            Span::from(format!(" pan:  L{:.2}  ", self.draw_data.state.pan.abs()))
                 .render(param_line_b[2], buf);
         } else {
-            Span::from(format!("  pan:   -C-   ")).render(param_line_b[2], buf);
+            Span::from(format!(" pan:   -C-   ")).render(param_line_b[2], buf);
         }
 
-        Fader::new("  spr", self.draw_data.state.spread).render(param_line_c[2], buf);
+        Fader::new(" spr", self.draw_data.state.spread).render(param_line_c[2], buf);
 
-        Fader::new("  att", self.draw_data.state.attack / 5.0).render(param_line_b[3], buf);
-        Fader::new("  rel", self.draw_data.state.release / 5.0).render(param_line_c[3], buf);
+        Fader::new(" att", self.draw_data.state.attack / 5.0).render(param_line_b[3], buf);
+        Fader::new(" rel", self.draw_data.state.release / 5.0).render(param_line_c[3], buf);
 
-        Span::from(format!("  pch: {} ", self.draw_data.state.pitch)).render(param_line_b[4], buf);
-        Fader::new("  vol", self.draw_data.state.gain).render(param_line_c[4], buf);
+        Span::from(format!(" pch: {} ", self.draw_data.state.pitch)).render(param_line_b[4], buf);
+        Fader::new(" vol", self.draw_data.state.gain).render(param_line_c[4], buf);
     }
 }

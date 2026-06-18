@@ -9,7 +9,9 @@ use ratatui::{
 };
 
 use crate::{
-    INSTANCE_NUM, state::{NumMode, State, View}, widgets::{peak_meter_widget::PeakMeter, track_widget::Track}
+    state::{NumMode, State, View},
+    widgets::{peak_meter_widget::PeakMeter, track_widget::Track},
+    INSTANCE_NUM,
 };
 
 pub fn draw(frame: &mut Frame, state: &mut State) {
@@ -26,7 +28,7 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
     let layout_horizontal = Layout::default()
         .direction(Direction::Horizontal)
         .flex(Flex::Center)
-        .constraints(vec![Constraint::Length(100)])
+        .constraints(vec![Constraint::Length(64)])
         .split(frame.area());
 
     let mut constraints = vec![Constraint::Length(1), Constraint::Length(1)];
@@ -44,28 +46,32 @@ fn render_main_view(frame: &mut Frame, state: &mut State) {
         .split(layout_horizontal[0]);
 
     for i in 0..INSTANCE_NUM {
-        let track = Track::from(&(i + 1).to_string(), out_buf[i].clone());
+        let track = Track::from(out_buf[i].clone());
         frame.render_widget(track, layout_vertical[i + 2]);
     }
 
-    let span = match state.num_mode {
-        NumMode::LoadPreset => Span::from("Press 0 - 9 to LOAD a PRESET"),
-        NumMode::SavePreset => Span::from("Press 0 - 9 to SAVE a PRESET"),
-        NumMode::LoadAudio => Span::from("Press 0 - 9 to LOAD an AUDIO"),
-        NumMode::SaveAudio => Span::from("Press 0 - 9 to SAVE an AUDIO"),
-    };
-
-    frame.render_widget(span, layout_vertical[layout_vertical.len() - 1]);
-
     let peak_meter_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Fill(1), Constraint::Fill(1)])
+        .constraints(vec![
+            Constraint::Fill(1),
+            Constraint::Fill(1),
+            Constraint::Fill(1),
+        ])
         .split(layout_vertical[0]);
 
-    let peak_meter_input = PeakMeter::from("Input", out_buf[0].input_peak, 15);
-    let peak_meter_output = PeakMeter::from("Output", out_buf[0].output_peak, 15);
+    let peak_meter_input = PeakMeter::from("Input", out_buf[0].input_peak);
+    let peak_meter_output = PeakMeter::from("Output", out_buf[0].output_peak);
+
+    let span = match state.num_mode {
+        NumMode::LoadPreset => Span::from("LOAD a PRESET"),
+        NumMode::SavePreset => Span::from("SAVE a PRESET"),
+        NumMode::LoadAudio => Span::from("LOAD an AUDIO"),
+        NumMode::SaveAudio => Span::from("SAVE an AUDIO"),
+    };
+
     frame.render_widget(peak_meter_input, peak_meter_layout[0]);
     frame.render_widget(peak_meter_output, peak_meter_layout[1]);
+    frame.render_widget(span, peak_meter_layout[2]);
 }
 
 fn render_preset_view(frame: &mut Frame, state: &mut State) {

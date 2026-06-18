@@ -15,17 +15,20 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 crossbeam = "0.8.4"
-serde = { version = "1", features = ["derive"] }
-grainiac_core = { path = "../grainiac_core"}
+grainiac_core = { path = "../grainiac_core" }
 hound = "3.5.1"
-nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs","standalone"] }
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = [
+  "assert_process_allocs",
+  "standalone",
+] }
 nih_plug_vizia = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 rfd = "0.15.4"
 ringbuf = "0.4.8"
+serde = { version = "1", features = ["derive"] }
 
 [profile.release]
-lto = "thin"
 strip = "symbols"
+lto = "thin"
 
 [profile.profiling]
 inherits = "release"

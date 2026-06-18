@@ -268,9 +268,18 @@ fn main() -> io::Result<()> {
 
             for event in midi {
                 let (message_type, midi_channel) = parse_status_byte(event.bytes[0]);
+
                 match message_type {
-                    9 => state.sampler.note_on(event.bytes[1] as usize),
-                    8 => state.sampler.note_off(event.bytes[1] as usize),
+                    9 => {
+                        if midi_channel == 0 || midi_channel == 2 {
+                            state.sampler.note_on(event.bytes[1] as usize)
+                        }
+                    }
+                    8 => {
+                        if midi_channel == 0 || midi_channel == 2 {
+                            state.sampler.note_off(event.bytes[1] as usize)
+                        }
+                    }
                     11 => handle_midi_cc(
                         event.bytes[1],
                         event.bytes[2],
@@ -294,23 +303,7 @@ fn main() -> io::Result<()> {
         move |_, _, _| jack::Control::Continue,
     );
 
-    let active_client = client.activate_async((), process).unwrap();
-    active_client
-        .as_client()
-        .connect_ports_by_name("grainiac:output_l", "system:playback_1")
-        .unwrap_or_default();
-    active_client
-        .as_client()
-        .connect_ports_by_name("grainiac:output_r", "system:playback_2")
-        .unwrap_or_default();
-    active_client
-        .as_client()
-        .connect_ports_by_name("system:capture_2", "grainiac:input_l")
-        .unwrap_or_default();
-    active_client
-        .as_client()
-        .connect_ports_by_name("system:capture_2", "grainiac:input_r")
-        .unwrap_or_default();
+    let _active_client = client.activate_async((), process).unwrap();
 
     let mut state = state::State::new(out_buf, s.clone(), config.presets);
     let mut terminal = ratatui::init();
@@ -403,14 +396,14 @@ fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mappi
                 sampler.toggle_mode(instance);
             }
         }
-        x if x == mapping.select_l => {
-            let select = value > 0.0;
-            sampler.set_select_l(select);
-        }
-        x if x == mapping.select_r => {
-            let select = value > 0.0;
-            sampler.set_select_r(select);
-        }
+        // x if x == mapping.select_l => {
+        //     let select = value > 0.0;
+        //     sampler.set_select_l(select);
+        // }
+        // x if x == mapping.select_r => {
+        //     let select = value > 0.0;
+        //     sampler.set_select_r(select);
+        // }
         _ => {} //println!("{:?}", event.bytes),
                 //
     }
