@@ -339,7 +339,13 @@ fn handle_midi_cc(cc: u8, val: u8, instance: usize, sampler: &mut Sampler, mappi
             sampler.set_loop_start(instance, value);
         }
         x if x == mapping.loop_length => {
-            sampler.set_loop_length(instance, value);
+            // Exponential mapping so the loop length is fine-grained at the short
+            // end (down into audio-rate territory) while the 127 MIDI steps stay
+            // evenly spaced in ratio/pitch terms. `value == 1.0` -> full buffer,
+            // `value == 0.0` -> MIN_LOOP_LENGTH (~1 ms of the 10 s buffer).
+            const MIN_LOOP_LENGTH: f32 = 0.005;
+            let loop_length = MIN_LOOP_LENGTH.powf(1.0 - value.clamp(0.0, 1.0));
+            sampler.set_loop_length(instance, loop_length);
         }
         x if x == mapping.density => {
             sampler.set_density(instance, value * 50.0);

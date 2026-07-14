@@ -21,6 +21,12 @@ pub struct Instance {
     pub voices: Vec<Voice>,
     pub grain_data: Vec<GrainData>,
     pub state: State,
+    /// Mode currently driving the output. Trails `state.mode` during a switch so
+    /// the signal path only flips while the fade below is at silence.
+    active_mode: Mode,
+    /// Master fade used to hide the discontinuity when switching play modes.
+    mode_fade: f32,
+    mode_fade_inc: f32,
 }
 
 impl Instance {
@@ -45,6 +51,10 @@ impl Instance {
             },
             grain_data: Vec::with_capacity(VOICE_NUM * GRAIN_NUM),
             state: State::new(),
+            active_mode: Mode::Grain,
+            mode_fade: 1.0,
+            // ~5 ms fade out / fade in around a mode switch.
+            mode_fade_inc: 1.0 / (0.005 * sample_rate),
         }
     }
 
@@ -162,14 +172,26 @@ impl Instance {
             self.write(*input_sample);
         }
 
+        // Drive the mode-switch fade. While the target mode differs from the
+        // active one, fade out; once silent, swap the signal path and fade back in.
+        if self.active_mode != self.state.mode {
+            self.mode_fade -= self.mode_fade_inc;
+            if self.mode_fade <= 0.0 {
+                self.mode_fade = 0.0;
+                self.active_mode = self.state.mode;
+            }
+        } else if self.mode_fade < 1.0 {
+            self.mode_fade = (self.mode_fade + self.mode_fade_inc).min(1.0);
+        }
+
         let mut output = (0.0, 0.0);
 
         self.grain_data.clear();
         for voice in self.voices.iter_mut() {
             if voice.midi_note != 0 {
-                self.grain_data.extend(voice.render(self.state.mode));
+                self.grain_data.extend(voice.render(self.active_mode));
 
-                if self.state.mode == Mode::Tape {
+                if self.active_mode == Mode::Tape {
                     let play_index_int = voice.play_pos.floor() as usize;
                     let next_index = (play_index_int + 1) % self.current_buffer_size;
                     let frac = voice.play_pos - play_index_int as f32;
@@ -198,8 +220,8 @@ impl Instance {
             output.1 += next_sample * grain_data.gain * right_gain;
         }
 
-        output.0 *= 0.5 * self.state.gain;
-        output.1 *= 0.5 * self.state.gain;
+        output.0 *= 0.5 * self.state.gain * self.mode_fade;
+        output.1 *= 0.5 * self.state.gain * self.mode_fade;
 
         output
     }

@@ -55,6 +55,10 @@ pub struct Voice {
     pub loop_start: f32,
     pub loop_length: f32,
     anti_clip: Envelope,
+    /// Set in Tape mode when the playhead must jump to the other loop edge but
+    /// the anti-click envelope is not yet silent. While set, the playhead is
+    /// frozen and we wait for the fade-out to finish before jumping.
+    pending_jump: bool,
     grains: [Grain; GRAIN_NUM],
     grain_trigger: Trigger,
     play_dircetion: PlayDirection,
@@ -85,6 +89,7 @@ impl Voice {
             grain_dircetion: PlayDirection::Forward,
             env: Envelope::new(sample_rate),
             anti_clip: Envelope::from(sample_rate, 0.001, 0.001, EnvelopeState::Attack),
+            pending_jump: false,
             is_playing: false,
             midi_note: 0,
             buffersize,
@@ -167,6 +172,8 @@ impl Voice {
         self.midi_note = midi_note;
         self.pitch = 2.0f32.powf((midi_note as f32 - 60.0) / 12.0);
         self.play_pos = loop_start_abs as f32;
+        self.pending_jump = false;
+        self.anti_clip.retrigger();
         self.env.set_state(EnvelopeState::Attack);
     }
 
@@ -183,39 +190,89 @@ impl Voice {
         let loop_end_abs = ((self.loop_start + self.loop_length) * self.buffersize as f32)
             .clamp(0.0, self.buffersize as f32) as f32;
 
+        // Combined pitch: note pitch × instance-wide global pitch. In Tape mode
+        // this scales the playhead speed, so the global pitch transposes tape
+        // playback just like it already does for grains.
+        let main_pitch = 2.0f32.powf(self.global_pitch as f32 / 12.0);
+        let tape_pitch = self.pitch * main_pitch;
+
+        // Distance (in samples of playhead travel) needed for the 1 ms anti-click
+        // release to fully fade out. Scaled by the tape pitch because in Tape mode
+        // the playhead advances `tape_pitch` samples per render.
+        let fade_samples = self.sample_rate * 0.001 * tape_pitch;
+
         match self.play_dircetion {
             PlayDirection::Forward => {
-                self.play_pos = match mode {
-                    Mode::Grain => self.play_pos + self.speed as f32,
-                    Mode::Tape => self.play_pos + (1.0 * self.pitch as f32),
-                };
+                // While a jump is pending we freeze the playhead so the fade-out
+                // happens on a continuous sample (no step), then jump once silent.
+                if !self.pending_jump {
+                    self.play_pos = match mode {
+                        Mode::Grain => self.play_pos + self.speed as f32,
+                        Mode::Tape => self.play_pos + tape_pitch,
+                    };
+                }
 
-                if self.play_pos >= loop_end_abs - 10.0
+                if self.play_pos >= loop_end_abs - fade_samples
                     && self.anti_clip.state != EnvelopeState::Release
                 {
                     self.anti_clip.state = EnvelopeState::Release;
                 }
 
-                if self.play_pos > loop_end_abs || self.play_pos < loop_start_abs {
+                if (self.play_pos > loop_end_abs || self.play_pos < loop_start_abs)
+                    && !self.pending_jump
+                {
+                    if mode == Mode::Tape && !self.anti_clip.is_silent() {
+                        // Loop edge moved across the playhead (or fade unfinished):
+                        // freeze the playhead on its current (still-valid) sample and
+                        // fade out from there before jumping. Only guard the raw
+                        // buffer bounds so we never read out of range.
+                        self.pending_jump = true;
+                        self.anti_clip.state = EnvelopeState::Release;
+                        self.play_pos = self.play_pos.clamp(0.0, self.buffersize as f32 - 1.0);
+                    } else {
+                        self.play_pos = loop_start_abs;
+                        self.anti_clip.retrigger();
+                    }
+                }
+
+                if self.pending_jump && self.anti_clip.is_silent() {
                     self.play_pos = loop_start_abs;
-                    self.anti_clip.state = EnvelopeState::Attack;
+                    self.anti_clip.retrigger();
+                    self.pending_jump = false;
                 }
             }
             PlayDirection::Backward => {
-                self.play_pos = match mode {
-                    Mode::Grain => self.play_pos - self.speed as f32,
-                    Mode::Tape => self.play_pos - (1.0 * self.pitch) as f32,
-                };
+                if !self.pending_jump {
+                    self.play_pos = match mode {
+                        Mode::Grain => self.play_pos - self.speed as f32,
+                        Mode::Tape => self.play_pos - tape_pitch,
+                    };
+                }
 
-                if self.play_pos <= loop_start_abs + 10.0
+                if self.play_pos <= loop_start_abs + fade_samples
                     && self.anti_clip.state != EnvelopeState::Release
                 {
                     self.anti_clip.state = EnvelopeState::Release;
                 }
 
-                if self.play_pos < loop_start_abs {
+                if (self.play_pos < loop_start_abs || self.play_pos > loop_end_abs)
+                    && !self.pending_jump
+                {
+                    if mode == Mode::Tape && !self.anti_clip.is_silent() {
+                        // Freeze on the current sample and fade out before jumping.
+                        self.pending_jump = true;
+                        self.anti_clip.state = EnvelopeState::Release;
+                        self.play_pos = self.play_pos.clamp(0.0, self.buffersize as f32 - 1.0);
+                    } else {
+                        self.play_pos = loop_end_abs;
+                        self.anti_clip.retrigger();
+                    }
+                }
+
+                if self.pending_jump && self.anti_clip.is_silent() {
                     self.play_pos = loop_end_abs;
-                    self.anti_clip.state = EnvelopeState::Attack;
+                    self.anti_clip.retrigger();
+                    self.pending_jump = false;
                 }
             }
         }
@@ -232,14 +289,12 @@ impl Voice {
                     pos = pos - self.buffersize as f32;
                 }
 
-                let main_pitch = 2.0f32.powf(self.global_pitch as f32 / 12.0);
-
                 if !grain.active {
                     let stereo_pos = self.pan + self.spread * ((fastrand::f32() * 2.0) - 1.0);
                     grain.activate(
                         (self.sample_rate * self.grain_length) as usize,
                         pos as f32,
-                        self.pitch * main_pitch,
+                        tape_pitch,
                         self.buffersize,
                         stereo_pos.clamp(-1.0, 1.0),
                         self.grain_dircetion.clone(),
@@ -267,6 +322,7 @@ impl Voice {
         if self.env.state == EnvelopeState::Off {
             self.midi_note = 0;
             self.is_playing = false;
+            self.pending_jump = false;
             self.grain_trigger.reset();
             for grain in self.grains.iter_mut() {
                 grain.reset();
@@ -376,5 +432,18 @@ impl Envelope {
 
     pub fn set_state(&mut self, state: EnvelopeState) {
         self.state = state;
+    }
+
+    /// Restart the attack from silence, so the fade-in is always audible even
+    /// if the envelope was still holding at full gain (e.g. after a loop jump).
+    fn retrigger(&mut self) {
+        self.gain = 0.0;
+        self.state = EnvelopeState::Attack;
+    }
+
+    /// True once the gain has faded low enough that a hard position jump is
+    /// inaudible.
+    fn is_silent(&self) -> bool {
+        self.gain <= 0.001
     }
 }

@@ -54,7 +54,7 @@ impl State {
             is_hold: false,
             play_dir: PlayDirection::Forward,
             grain_dir: PlayDirection::Forward,
-            mode: Mode::Tape,
+            mode: Mode::Grain,
         }
     }
 }

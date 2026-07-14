@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use brailles::{NUM_STATES, STATES, STATE_10};
 use grainiac_core::{instance::Mode, voice::PlayDirection, DrawData};
 use ratatui::{
